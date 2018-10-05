@@ -1,83 +1,65 @@
-import os
+import functools
 import asyncio
 import json
 import logging
-from aiohttp import web
+import websockets
+
 from game import Game
 
-GAME_SPEED = 1
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger('websockets')
+logger.setLevel(logging.WARN)
 
-async def handle(request):
-    """
-    Serves files for the GUI
-    """
-    ALLOWED_FILES = ["map", "pacman.png", "ghost.png"]
-    name = request.match_info.get('name')
-    if name in ALLOWED_FILES:
-        try:
-            with open(name, 'rb') as index:
-                return web.Response(body=index.read(), content_type='image/png')
-        except FileNotFoundError:
-            pass
-    return web.Response(status=404)
+class Game_server:
+    def __init__(self):
+        self.game = Game() 
+        self.clients = set()
 
-async def wshandler(request):
-    """
-    Handle agents commands
-    """
-    logging.debug("New Agent connected")
+    async def keyprocess_handler(self, websocket, path):
+        self.clients.add(websocket)
     
-    app = request.app
-    game = app["game"]
-   
-    ws = web.WebSocketResponse()
-    await ws.prepare(request)
+        try:
+            async for message in websocket:
+                data = json.loads(message)
+                if data["cmd"] == "join":
+                    logging.info("Restart game")
+                    self.game.start() 
+                if data["cmd"] == "key":
+                    self.game.keypress(data["key"])
 
-    player = None
-    while True:
-        msg = await ws.receive()
-        if msg.type == web.WSMsgType.TEXT:
-            logging.debug("Got message %s" % msg.data)
+        except websockets.exceptions.ConnectionClosed as c:
+            logging.info("Client disconnected")
+        finally:
+            self.clients.remove(websocket)
+            if not self.clients:
+                self.game.stop()
 
-            data = json.loads(msg.data)
-            if data["cmd"] == "join":
-                if not game.running:
-                    game.reset_world()
+    async def state_broadcast_handler(self, websocket, path):
+        while self.game:
+            await self.game.next_frame()
+            if self.clients:       # asyncio.wait doesn't accept an empty list
+                await asyncio.wait([client.send(self.game.state) for client in self.clients])
 
-                    logging.debug("Starting game loop")
-                    asyncio.ensure_future(game_loop(game))
+async def client_handler(websocket, path, game):
+    keyprocess_task = asyncio.ensure_future(
+        game.keyprocess_handler(websocket, path))
+    state_broadcast_task = asyncio.ensure_future(
+        game.state_broadcast_handler(websocket, path))
+    done, pending = await asyncio.wait(
+        [keyprocess_task, state_broadcast_task],
+        return_when=asyncio.FIRST_COMPLETED,
+    )
+    for task in pending:
+        task.cancel()
 
-                game.join(player,ws)
+if __name__ == "__main__":
+    g = Game_server()
 
-        elif msg.type == web.WSMsgType.CLOSE:
-            break
+    game_handler = functools.partial(client_handler, game=g)
+    start_server = websockets.serve(game_handler, 'localhost', 8000)
 
-    if player:
-        game.player_disconnected(player)
+    loop = asyncio.get_event_loop()
+    
+    loop.run_until_complete(start_server)
+    loop.run_forever()
 
-    logging.debug("Agent disconnected")
-    return ws
-
-async def game_loop(game):
-    logging.info("Starting game")
-    while True:
-        await game.next_frame()
-        if not game.running:
-            break
-        await asyncio.sleep(1./GAME_SPEED)
-    logging.info("Stopping game")
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
-
-    event_loop = asyncio.get_event_loop()
-
-    app = web.Application()
-
-    app["game"] = Game()
-
-    app.router.add_route('GET', '/connect', wshandler)
-    app.router.add_route('GET', '/', handle)
-
-    port = int(os.environ.get('PORT', 8000))
-    web.run_app(app, port=port)

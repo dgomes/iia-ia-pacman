@@ -1,11 +1,24 @@
+import sys
 import json
-from websocket import create_connection
+import asyncio
+import websockets
 
-ws = create_connection("ws://localhost:8000/connect")
-print("Sending 'Hello, World'...")
-ws.send(json.dumps({"cmd":"join"}))
-print("Sent")
-print("Receiving...")
-result =  ws.recv()
-print("Received '%s'" % result)
-ws.close()
+
+async def hello():
+    async with websockets.connect('ws://localhost:8000/connect') as websocket:
+        await websocket.send(json.dumps({"cmd": "join"}))
+        key = 's'
+        while True:
+            r = await websocket.recv()
+            state = json.loads(r)
+            x, y = state['pacman']
+            if x > 10:
+                key = 'a'
+            if x == 0:
+                key = 'd'
+            await websocket.send(json.dumps({"cmd": "key", "key": key}))
+            print(r)
+
+
+loop = asyncio.get_event_loop()
+loop.run_until_complete(hello())
