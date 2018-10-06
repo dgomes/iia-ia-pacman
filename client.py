@@ -5,7 +5,7 @@ import websockets
 
 
 async def hello():
-    async with websockets.connect('ws://localhost:8000/connect') as websocket:
+    async with websockets.connect('ws://localhost:8000/player') as websocket:
         await websocket.send(json.dumps({"cmd": "join"}))
         key = 's'
         while True:

@@ -6,7 +6,7 @@ import websockets
 
 from game import Game
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('websockets')
 logger.setLevel(logging.WARN)
 
@@ -36,9 +36,12 @@ class Game_server:
 
     async def state_broadcast_handler(self, websocket, path):
         while self.game:
-            await self.game.next_frame()
-            if self.clients:       # asyncio.wait doesn't accept an empty list
-                await asyncio.wait([client.send(self.game.state) for client in self.clients])
+            if path == "/player":
+                await self.game.next_frame()
+                if self.clients:       # asyncio.wait doesn't accept an empty list
+                    await asyncio.wait([client.send(self.game.state) for client in self.clients])
+            else:
+                await asyncio.sleep(.1)
 
 async def client_handler(websocket, path, game):
     keyprocess_task = asyncio.ensure_future(

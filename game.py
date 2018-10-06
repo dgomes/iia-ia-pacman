@@ -11,7 +11,7 @@ class Game:
         self._step = 0
         logger.info("Game()")
         self._state = {}
-        self.GAME_SPEED = 1
+        self.GAME_SPEED = 2 
         self.pac = (0, 0)
 
     def __nonzero__(self):
