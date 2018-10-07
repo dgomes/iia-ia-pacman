@@ -5,7 +5,8 @@ logger = logging.getLogger('Ghost')
 logger.setLevel(logging.DEBUG)
 
 class Ghost:
-    def __init__(self, x, y, state):
+    def __init__(self, pos):
+        x, y = pos
         self.x = x
         self.y = y
 
