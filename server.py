@@ -82,7 +82,7 @@ async def client_handler(websocket, path, game):
         task.cancel()
 
 if __name__ == "__main__":
-    mapfile = "data/test_map.bmp"
+    mapfile = "data/map1.bmp"
     g = Game_server(mapfile, 1)
 
     game_handler = functools.partial(client_handler, game=g)
