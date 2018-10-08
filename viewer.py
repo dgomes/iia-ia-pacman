@@ -60,16 +60,37 @@ class PacMan(pygame.sprite.Sprite):
         #get new position and fill self.rect.x + y
         pass
 
-class Wall(pygame.sprite.Sprite):
+
+class Ghost(pygame.sprite.Sprite):
     def __init__(self, *args, **kw):
         self.x, self.y = (kw.pop("pos", ((kw.pop("x", 0), kw.pop("y", 0)))))
-
+        self.index = kw.pop("index", 0)
+        self.images = kw["images"]
         self.rect = pygame.Rect((self.x, self.y) + CHAR_SIZE)
         self.image = pygame.Surface(CHAR_SIZE)
+        self.image.blit(*self.sprite_pos("left"))
         super().__init__()
+   
+    def sprite_pos(self, direction):
+        CROP = 22 
+        x, y = None, None
+
+        if direction == "left":
+            x, y = 48, 144 
+        if direction == "right":
+            x, y = 96, 144 
+        if direction == "down":
+            x, y = 120, 144
+        if direction == "up":
+            x, y = 24, 144
+        return (self.images, (2,2), (x, y, x+CROP, y+CROP))
 
     def update(self, state):
-        self.image.fill((100,100,100))
+        if 'ghosts' in state:
+            x, y = state['ghosts'][self.index]
+            self.x, self.y = x*CHAR_LENGTH, y*CHAR_LENGTH
+            self.rect = pygame.Rect((self.x, self.y) + CHAR_SIZE)
+            self.image.blit(*self.sprite_pos("left"))
 
 def clear_callback(surf, rect):
     color = 0, 0, 0
@@ -80,15 +101,16 @@ def scale(pos):
     return x * 26, y * 26
 
 def draw_background(mapa, SCREEN):
-    background_group = pygame.sprite.OrderedUpdates()
     for x in range(mapa.size[0]):
         for y in range(mapa.size[1]):
             if mapa.is_wall((x,y)):
-                background_group.add(Wall(pos=scale((x,y))))
-    background_group.clear(SCREEN, clear_callback)
-    background_group.update(None)
-    background_group.draw(SCREEN)
+                draw_wall(SCREEN, x, y)
         
+def draw_wall(SCREEN, x, y):
+    wx, wy = scale((x, y))
+    pygame.draw.rect(SCREEN, (100, 100, 100),
+                       (wx,wy,CHAR_LENGTH, CHAR_LENGTH), 0)
+
 def draw_energy(SCREEN, x, y, boost=False):
     ex, ey = scale((x, y))
     pygame.draw.circle(SCREEN, (200, 0, 0),
@@ -108,6 +130,8 @@ async def main_loop(q):
    
     draw_background(mapa, SCREEN)
     main_group.add(PacMan(pos=scale(mapa.pacman_spawn), images=images))
+    main_group.add(Ghost(pos=scale(mapa.ghost_spawn), images=images, index=0))
+    main_group.add(Ghost(pos=scale(mapa.ghost_spawn), images=images, index=1))
     
     state = dict() 
     while True:
@@ -124,7 +148,7 @@ async def main_loop(q):
         if "boost" in state:
             for x, y in state["boost"]:
                 draw_energy(SCREEN, x, y, True)
-        
+       
         main_group.update(state)
         
         pygame.display.flip()

@@ -39,7 +39,7 @@ class Game:
         self._running = True
         
         self._step = 0
-        self._ghosts = [Ghost(self.map.ghost_spawn) for g in range(0,2)]
+        self._ghosts = [Ghost(self.map.ghost_spawn, self.map) for g in range(0,2)]
         self._pacman = self.map.pacman_spawn
         self._energy = self.map.energy
         self._boost = self.map.boost
