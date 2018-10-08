@@ -11,7 +11,7 @@ POINT_ENERGY = 1
 POINT_BOOST = 10
 POINT_GHOST = 50
 BOOST_TIMEOUT = 30
-GAME_SPEED = 2
+GAME_SPEED = 5 
 
 class Game:
     def __init__(self):
@@ -56,11 +56,9 @@ class Game:
         self._running = False
 
     def keypress(self, key):
-        logger.debug("Key = {}".format(key))
         self._lastkeypress = key
 
     def update_pacman(self):
-        logging.debug("Current position = {}".format(self._pacman))
         self._pacman = self.map.calc_pos(self._pacman, self._lastkeypress) 
         c = self.consume(self._pacman)
         if c == Tiles.ENERGY:
@@ -85,8 +83,6 @@ class Game:
                     self._ghosts.remove(self._pacman)
                     self._ghosts.add(Ghost(self.map.ghost_spawn))
         
-        logging.debug("New position = {}".format(self._pacman))
-
     async def next_frame(self):
         await asyncio.sleep(1./GAME_SPEED)
         
@@ -98,7 +94,8 @@ class Game:
         if self._super > 0:
             self._super -= 1
 
-        logger.debug("[{}] SCORE {} - LIVES {}".format(self._step, self._score, self._lives))
+        if self._step % 100 == 0:
+            logger.debug("[{}] SCORE {} - LIVES {}".format(self._step, self._score, self._lives))
   
         self.update_pacman()
         for ghost in self._ghosts:

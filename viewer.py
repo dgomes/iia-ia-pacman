@@ -14,6 +14,8 @@ logger.setLevel(logging.WARN)
 
 CHAR_LENGTH = 26
 CHAR_SIZE= CHAR_LENGTH, CHAR_LENGTH #22 + 2px border
+ENERGY_RADIUS = 4
+BOOST_RADIUS = 8
 
 async def messages_handler(queue):
     async with websockets.connect('ws://localhost:8000/viewer') as websocket:
@@ -21,7 +23,6 @@ async def messages_handler(queue):
 
         while True:
             r = await websocket.recv()
-            logging.debug(r)
             queue.put_nowait(r)
 
 class GameOver(BaseException):
@@ -51,7 +52,6 @@ class PacMan(pygame.sprite.Sprite):
         return (self.images, (2,2), (x, y, x+CROP, y+CROP))
 
     def update(self, state):
-        logging.debug(state)
         if 'pacman' in state:
             x, y = state['pacman']
             self.x, self.y = x*CHAR_LENGTH, y*CHAR_LENGTH
@@ -60,23 +60,16 @@ class PacMan(pygame.sprite.Sprite):
         #get new position and fill self.rect.x + y
         pass
 
-class Energy(pygame.sprite.Sprite):
-    def __init__(self, *args, **kw):
-        self.x, self.y = (kw.pop("pos", ((kw.pop("x", 0), kw.pop("y", 0)))))
-        self.images = kw["images"]
-        self.rect = pygame.Rect((self.x, self.y) + CHAR_SIZE)
-        self.image = pygame.Surface(CHAR_SIZE)
-        self.image.blit(images, (2,2) (self.x, self.y, self.x+CROP, self.y+CROP))
-        super().__init__()
-
 class Wall(pygame.sprite.Sprite):
     def __init__(self, *args, **kw):
         self.x, self.y = (kw.pop("pos", ((kw.pop("x", 0), kw.pop("y", 0)))))
+
         self.rect = pygame.Rect((self.x, self.y) + CHAR_SIZE)
         self.image = pygame.Surface(CHAR_SIZE)
-        self.image.fill((100, 100, 100), self.rect)
         super().__init__()
-    TODO add update()
+
+    def update(self, state):
+        self.image.fill((100,100,100))
 
 def clear_callback(surf, rect):
     color = 0, 0, 0
@@ -86,9 +79,24 @@ def scale(pos):
     x, y = pos
     return x * 26, y * 26
 
+def draw_background(mapa, SCREEN):
+    background_group = pygame.sprite.OrderedUpdates()
+    for x in range(mapa.size[0]):
+        for y in range(mapa.size[1]):
+            if mapa.is_wall((x,y)):
+                background_group.add(Wall(pos=scale((x,y))))
+    background_group.clear(SCREEN, clear_callback)
+    background_group.update(None)
+    background_group.draw(SCREEN)
+        
+def draw_energy(SCREEN, x, y, boost=False):
+    ex, ey = scale((x, y))
+    pygame.draw.circle(SCREEN, (200, 0, 0),
+                       (ex+int(CHAR_LENGTH/2),ey+int(CHAR_LENGTH/2)),
+                       BOOST_RADIUS if boost else ENERGY_RADIUS, 0)
+
 async def main_loop(q):
     main_group = pygame.sprite.OrderedUpdates()
-    background_group = pygame.sprite.Group()
     images = pygame.image.load("data/sprites/spritemap.png")
    
     logging.info("Waiting for map information from server") 
@@ -96,21 +104,33 @@ async def main_loop(q):
     
     map_json = json.loads(state)
     mapa = Map(map_json["map"])
-    main_group.add(Wall(pos=scale((15,15))))
-    main_group.add(PacMan(pos=scale(mapa.pacman_spawn), images=images))
     SCREEN = pygame.display.set_mode(scale(mapa.size))
+   
+    draw_background(mapa, SCREEN)
+    main_group.add(PacMan(pos=scale(mapa.pacman_spawn), images=images))
+    
+    state = dict() 
     while True:
         pygame.event.pump()
         if pygame.key.get_pressed()[pygame.K_ESCAPE]:
             asyncio.get_event_loop().stop() 
     
         main_group.clear(SCREEN, clear_callback)
-        main_group.update(json.loads(state))
+   
         main_group.draw(SCREEN)
+        if "energy" in state:
+            for x, y in state["energy"]:
+                draw_energy(SCREEN, x, y)
+        if "boost" in state:
+            for x, y in state["boost"]:
+                draw_energy(SCREEN, x, y, True)
+        
+        main_group.update(state)
+        
         pygame.display.flip()
         
         try:
-            state = await q.get_nowait() 
+            state = json.loads(q.get_nowait())
         except asyncio.queues.QueueEmpty:
             await asyncio.sleep(0.05)
             continue 
