@@ -15,16 +15,21 @@ class Game_server:
         self.game = Game() 
         self.clients = set()
 
-    async def keyprocess_handler(self, websocket, path):
+    async def incomming_handler(self, websocket, path):
         self.clients.add(websocket)
     
         try:
             async for message in websocket:
                 data = json.loads(message)
                 if data["cmd"] == "join":
-                    logging.info("Restart game")
-                    self.game.start() 
-                if data["cmd"] == "key":
+                    map_info = json.dumps({"map": self.game.map.filename})
+                    await asyncio.wait([websocket.send(map_info)])
+                    
+                    if path == "/player":
+                        logging.info("Restart game")
+                        self.game.start() 
+                
+                if path == "/player" and data["cmd"] == "key":
                     self.game.keypress(data["key"])
 
         except websockets.exceptions.ConnectionClosed as c:
@@ -44,12 +49,12 @@ class Game_server:
                 await asyncio.sleep(.1)
 
 async def client_handler(websocket, path, game):
-    keyprocess_task = asyncio.ensure_future(
-        game.keyprocess_handler(websocket, path))
+    incomming_task = asyncio.ensure_future(
+        game.incomming_handler(websocket, path))
     state_broadcast_task = asyncio.ensure_future(
         game.state_broadcast_handler(websocket, path))
     done, pending = await asyncio.wait(
-        [keyprocess_task, state_broadcast_task],
+        [incomming_task, state_broadcast_task],
         return_when=asyncio.FIRST_COMPLETED,
     )
     for task in pending:

@@ -8,6 +8,8 @@ import websockets
 async def hello():
     async with websockets.connect('ws://localhost:8000/player') as websocket:
         await websocket.send(json.dumps({"cmd": "join"}))
+        map_info = await websocket.recv()
+        print(map_info)
         key = 'd'
         cur_x, cur_y = None, None
         while True:

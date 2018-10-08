@@ -15,6 +15,7 @@ class Tiles(Enum):
 
 class Map:
     def __init__(self, filename):
+        self._filename = filename
         image = pygame.image.load(filename)
         self.pxarray = pygame.PixelArray(image)
         self.hor_tiles=len(self.pxarray)
@@ -37,6 +38,11 @@ class Map:
                     self._ghost_spawn = (x, y)
 
                 print("{}, {}   {:x}".format(x, y, p))
+
+
+    @property
+    def filename(self):
+        return self._filename
 
     @property
     def size(self):
