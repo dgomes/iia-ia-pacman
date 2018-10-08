@@ -37,7 +37,7 @@ class Map:
                 elif p == GHOST:
                     self._ghost_spawn = (x, y)
 
-                logging.debug("{}, {}   {:x}".format(x, y, p))
+                #logging.debug("{}, {}   {:x}".format(x, y, p))
 
 
     @property

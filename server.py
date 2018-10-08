@@ -3,6 +3,7 @@ import asyncio
 import json
 import logging
 import websockets
+import os.path
 
 from game import Game
 
@@ -11,9 +12,14 @@ logger = logging.getLogger('websockets')
 logger.setLevel(logging.WARN)
 
 class Game_server:
-    def __init__(self):
-        self.game = Game() 
+    def __init__(self, mapfile, ghosts):
+        self.game = Game(mapfile, ghosts) 
         self.clients = set()
+        self.highscores = [] 
+        if os.path.isfile(mapfile+".score"):
+            with open(mapfile+".score", 'r') as infile:
+                self.highscores = json.load(infile)
+        self.current_player_name = None
 
     async def incomming_handler(self, websocket, path):
         self.clients.add(websocket)
@@ -22,15 +28,18 @@ class Game_server:
             async for message in websocket:
                 data = json.loads(message)
                 if data["cmd"] == "join":
-                    map_info = json.dumps({"map": self.game.map.filename})
+                    map_info = self.game.info()
                     await asyncio.wait([websocket.send(map_info)])
                     
                     if path == "/player":
                         logging.info("Restart game")
                         self.game.start() 
                 
+                        if "name" in data:
+                            self.current_player_name = data["name"]
+
                 if path == "/player" and data["cmd"] == "key":
-                    self.game.keypress(data["key"])
+                    self.game.keypress(data["key"][0])
 
         except websockets.exceptions.ConnectionClosed as c:
             logging.info("Client disconnected")
@@ -40,13 +49,25 @@ class Game_server:
                 self.game.stop()
 
     async def state_broadcast_handler(self, websocket, path):
-        while self.game:
+        while path == "/viewer" or not self.game.running:
+            await asyncio.sleep(.1)
+        while self.game.running:
             if path == "/player":
                 await self.game.next_frame()
                 if self.clients:       # asyncio.wait doesn't accept an empty list
                     await asyncio.wait([client.send(self.game.state) for client in self.clients])
-            else:
                 await asyncio.sleep(.1)
+    
+        #update highscores
+        if path == "/player":
+            logging.debug("Save highscores")
+            self.highscores.append((self.current_player_name, self.game.score))
+            self.highscores = sorted(self.highscores, key=lambda s: s[0])[:10]
+    
+            with open(self.game.map._filename+".score", 'w') as outfile:
+                json.dump(self.highscores, outfile)
+            return
+
 
 async def client_handler(websocket, path, game):
     incomming_task = asyncio.ensure_future(
@@ -61,7 +82,8 @@ async def client_handler(websocket, path, game):
         task.cancel()
 
 if __name__ == "__main__":
-    g = Game_server()
+    mapfile = "data/test_map.bmp"
+    g = Game_server(mapfile, 1)
 
     game_handler = functools.partial(client_handler, game=g)
     start_server = websockets.serve(game_handler, 'localhost', 8000)

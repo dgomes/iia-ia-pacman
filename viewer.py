@@ -34,6 +34,7 @@ class PacMan(pygame.sprite.Sprite):
         self.images = kw["images"]
         self.rect = pygame.Rect((self.x, self.y) + CHAR_SIZE)
         self.image = pygame.Surface(CHAR_SIZE)
+        #TODO determine direction of pacman
         self.image.blit(*self.sprite_pos("left"))
         super().__init__()
    
@@ -56,9 +57,8 @@ class PacMan(pygame.sprite.Sprite):
             x, y = state['pacman']
             self.x, self.y = x*CHAR_LENGTH, y*CHAR_LENGTH
             self.rect = pygame.Rect((self.x, self.y) + CHAR_SIZE)
+            #TODO determine direction of pacman 
             self.image.blit(*self.sprite_pos("left"))
-        #get new position and fill self.rect.x + y
-        pass
 
 
 class Ghost(pygame.sprite.Sprite):
@@ -124,14 +124,15 @@ async def main_loop(q):
     logging.info("Waiting for map information from server") 
     state = await q.get() #first state message includes map information
     
-    map_json = json.loads(state)
-    mapa = Map(map_json["map"])
+    newgame_json = json.loads(state)
+    mapa = Map(newgame_json["map"])
     SCREEN = pygame.display.set_mode(scale(mapa.size))
    
     draw_background(mapa, SCREEN)
     main_group.add(PacMan(pos=scale(mapa.pacman_spawn), images=images))
-    main_group.add(Ghost(pos=scale(mapa.ghost_spawn), images=images, index=0))
-    main_group.add(Ghost(pos=scale(mapa.ghost_spawn), images=images, index=1))
+    
+    for i in range(newgame_json["ghosts"]):
+        main_group.add(Ghost(pos=scale(mapa.ghost_spawn), images=images, index=i))
     
     state = dict() 
     while True:

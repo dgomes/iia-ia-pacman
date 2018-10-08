@@ -6,12 +6,16 @@ logger = logging.getLogger('Ghost')
 logger.setLevel(logging.DEBUG)
 
 class Ghost:
-    def __init__(self, pos, mapa):
-        x, y = pos
-        self.x = x
-        self.y = y
+    def __init__(self, mapa):
         self.map = mapa
+        self.respawn()
         self.direction = "a"
+
+    def respawn(self):
+        x, y = self.map._ghost_spawn
+        self.x = x
+        self.y = y 
+
     @property
     def pos(self):
         return self.x, self.y

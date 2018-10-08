@@ -7,20 +7,28 @@ from mapa import Map, Tiles
 logger = logging.getLogger('Game')
 logger.setLevel(logging.DEBUG)
 
+GHOSTS = 3
+LIVES = 3
 POINT_ENERGY = 1
 POINT_BOOST = 10
 POINT_GHOST = 50
 BOOST_TIMEOUT = 30
+INITIAL_SCORE = 10000
 GAME_SPEED = 5 
 
 class Game:
-    def __init__(self):
+    def __init__(self, mapfile, n_ghosts=GHOSTS, lives=LIVES):
         logger.info("Game()")
         self._running = False
         self._state = {}
-        
-        self.map = Map("data/map1.bmp")
-       
+        self._n_ghosts = n_ghosts
+        self._initial_lives = lives
+        self.map = Map(mapfile)
+
+    def info(self):
+        return json.dumps({"map": self.map.filename,
+                           "ghosts": self._n_ghosts,
+                            })
 
     def consume(self, pos):
         """Update map at position."""
@@ -31,24 +39,30 @@ class Game:
             self._boost.remove(pos)
             return Tiles.BOOST
 
-    def __nonzero__(self):
+    @property
+    def running(self):
         return self._running
+
+    @property
+    def score(self):
+        return self._score
 
     def start(self):
         logger.debug("Reset world")
         self._running = True
         
         self._step = 0
-        self._ghosts = [Ghost(self.map.ghost_spawn, self.map) for g in range(0,2)]
+        self._ghosts = [Ghost(self.map) for g in range(0,self._n_ghosts)]
         self._pacman = self.map.pacman_spawn
         self._energy = self.map.energy
         self._boost = self.map.boost
         self._super = False
         self._lastkeypress = "d" 
-        self._score = 10000
-        self._lives = 3
+        self._score = INITIAL_SCORE 
+        self._lives = self._initial_lives 
 
     def stop(self):
+        logging.info("GAME OVER")
         self._running = False
 
     def quit(self):
@@ -67,22 +81,22 @@ class Game:
             self._score += POINT_BOOST
             self._super = BOOST_TIMEOUT
 
-        if self._pacman in self._ghosts:
-            if self._super > 0:
-                logging.debug("Ghost eaten")
-                self._score += POINT_GHOST
-                self._ghosts.remove(self._pacman)
-                self._ghosts.add(Ghost(self.map.ghost_spawn))
-            else:
-                logging.debug("Dead")
-                self._lives -= 1
-                self.pacman = self.map.pacman_spawn
+    def collision(self):
+        for g in self._ghosts:
+            if g.pos == self._pacman:
+                if self._super:
+                    self._score += POINT_GHOST
+                    g.respawn()
+                else:
+                    logging.info("DEAD")
+                    if self._lives:
+                        self._lives -= 1
+                        self._pacman = self.map.pacman_spawn
+                        g.respawn()
+                    if not self._lives:
+                        self.stop()
+                        return
 
-                #Avoid spawning on top of a ghost
-                if self._pacman in self._ghosts:
-                    self._ghosts.remove(self._pacman)
-                    self._ghosts.add(Ghost(self.map.ghost_spawn))
-        
     async def next_frame(self):
         await asyncio.sleep(1./GAME_SPEED)
         
@@ -98,11 +112,15 @@ class Game:
             logger.debug("[{}] SCORE {} - LIVES {}".format(self._step, self._score, self._lives))
   
         self.update_pacman()
+        self.collision()
+       
         for ghost in self._ghosts:
             ghost.update(self._state)
-
+        self.collision()
+        
         self._state = {"step": self._step,
                        "score": self._score,
+                       "lives": self._lives,
                        "super": self._super > 0,  # True -> pacman can eat ghosts
                        "pacman": self._pacman,
                        "ghosts": [g.pos for g in self._ghosts],
