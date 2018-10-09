@@ -13,12 +13,13 @@ POINT_ENERGY = 1
 POINT_BOOST = 10
 POINT_GHOST = 50
 BOOST_TIMEOUT = 30
-INITIAL_SCORE = 10000
+INITIAL_SCORE = 0
+TIMEOUT = 1000
 GAME_SPEED = 5 
 
 class Game:
     def __init__(self, mapfile, n_ghosts=GHOSTS, lives=LIVES):
-        logger.info("Game()")
+        logger.info("Game({}, {}, {})", mapfile, n_ghosts, lives)
         self._running = False
         self._state = {}
         self._n_ghosts = n_ghosts
@@ -82,6 +83,10 @@ class Game:
             self._score += POINT_BOOST
             self._super = BOOST_TIMEOUT
 
+        if len(self._energy) + len(self._boost) == 0:
+            logging.info("Level completed")
+            self.stop()
+
     def collision(self):
         for g in self._ghosts:
             if g.pos == self._pacman:
@@ -106,6 +111,9 @@ class Game:
             return
 
         self._step += 1
+        if self._step == TIMEOUT:
+            self.stop()
+
         if self._super > 0:
             self._super -= 1
 
