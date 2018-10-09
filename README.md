@@ -13,8 +13,9 @@ $ pip install -r requirements.txt
 ```
 # How to run:
 Open 3 terminals, in each terminal runonce:
+```console
 $ source venv/bin/activate
-
+```
 Run each application in it's terminal:
 
 Terminal 1:
