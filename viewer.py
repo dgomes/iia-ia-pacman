@@ -98,7 +98,7 @@ def clear_callback(surf, rect):
 
 def scale(pos):
     x, y = pos
-    return x * 26, y * 26
+    return x * CHAR_LENGTH, y * CHAR_LENGTH 
 
 def draw_background(mapa, SCREEN):
     for x in range(mapa.size[0]):
@@ -116,6 +116,19 @@ def draw_energy(SCREEN, x, y, boost=False):
     pygame.draw.circle(SCREEN, (200, 0, 0),
                        (ex+int(CHAR_LENGTH/2),ey+int(CHAR_LENGTH/2)),
                        BOOST_RADIUS if boost else ENERGY_RADIUS, 0)
+
+prev_text = ""
+def draw_info(SCREEN, state):
+    global prev_text
+    myfont = pygame.font.SysFont('Courier Bold', 30)
+   
+    #TODO blit to a surface or sprite and avoid wite over
+    textsurface = myfont.render(prev_text, True, (100, 100, 100))
+    SCREEN.blit(textsurface,(0,0))
+    text = str(state["score"])
+    textsurface = myfont.render(text, True, (0, 0, 0))
+    prev_text = text
+    SCREEN.blit(textsurface,(0,0))
 
 async def main_loop(q):
     main_group = pygame.sprite.OrderedUpdates()
@@ -139,10 +152,12 @@ async def main_loop(q):
         pygame.event.pump()
         if pygame.key.get_pressed()[pygame.K_ESCAPE]:
             asyncio.get_event_loop().stop() 
-    
+  
         main_group.clear(SCREEN, clear_callback)
    
         main_group.draw(SCREEN)
+        if "score" in state:
+            draw_info(SCREEN, state)
         if "energy" in state:
             for x, y in state["energy"]:
                 draw_energy(SCREEN, x, y)
@@ -151,6 +166,7 @@ async def main_loop(q):
                 draw_energy(SCREEN, x, y, True)
        
         main_group.update(state)
+       
         
         pygame.display.flip()
         
@@ -163,6 +179,7 @@ async def main_loop(q):
 
 async def main():
 
+    pygame.font.init()
     q = asyncio.Queue()
 
     await asyncio.gather(messages_handler(q), main_loop(q)) 
