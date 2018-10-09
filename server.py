@@ -32,7 +32,6 @@ class Game_server:
                     await asyncio.wait([websocket.send(map_info)])
                     
                     if path == "/player":
-                        logging.info("Restart game")
                         self.game.start() 
                 
                         if "name" in data:
@@ -45,7 +44,8 @@ class Game_server:
             logging.info("Client disconnected")
         finally:
             self.clients.remove(websocket)
-            if not self.clients:
+            if not self.clients and self.game.running:
+                logger.info("close the game")
                 self.game.stop()
 
     async def state_broadcast_handler(self, websocket, path):

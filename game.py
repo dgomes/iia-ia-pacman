@@ -14,12 +14,12 @@ POINT_BOOST = 10
 POINT_GHOST = 50
 BOOST_TIMEOUT = 30
 INITIAL_SCORE = 0
-TIMEOUT = 1000
-GAME_SPEED = 5 
+TIMEOUT = 100
+GAME_SPEED = 10 
 
 class Game:
     def __init__(self, mapfile, n_ghosts=GHOSTS, lives=LIVES):
-        logger.info("Game({}, {}, {})", mapfile, n_ghosts, lives)
+        logger.info("Game({}, {}, {})".format(mapfile, n_ghosts, lives))
         self._running = False
         self._state = {}
         self._n_ghosts = n_ghosts
@@ -64,7 +64,7 @@ class Game:
         self._lives = self._initial_lives 
 
     def stop(self):
-        logging.info("GAME OVER")
+        logger.info("GAME OVER")
         self._running = False
 
     def quit(self):
@@ -84,17 +84,17 @@ class Game:
             self._super = BOOST_TIMEOUT
 
         if len(self._energy) + len(self._boost) == 0:
-            logging.info("Level completed")
+            logger.info("Level completed")
             self.stop()
 
     def collision(self):
         for g in self._ghosts:
-            if g.pos == self._pacman:
+            if g.pos == self._pacman and self._running:
                 if self._super:
                     self._score += POINT_GHOST
                     g.respawn()
                 else:
-                    logging.info("DEAD")
+                    logger.info("DEAD")
                     if self._lives:
                         self._lives -= 1
                         self._pacman = self.map.pacman_spawn
@@ -105,9 +105,9 @@ class Game:
 
     async def next_frame(self):
         await asyncio.sleep(1./GAME_SPEED)
-        
+
         if not self._running:
-            logging.info("Waiting for player 1")
+            logger.info("Waiting for player 1")
             return
 
         self._step += 1
