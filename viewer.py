@@ -55,9 +55,9 @@ class PacMan(pygame.sprite.Sprite):
     def update(self, state):
         if 'pacman' in state:
             x, y = state['pacman']
+            #TODO determine direction of pacman 
             self.x, self.y = x*CHAR_LENGTH, y*CHAR_LENGTH
             self.rect = pygame.Rect((self.x, self.y) + CHAR_SIZE)
-            #TODO determine direction of pacman 
             self.image.blit(*self.sprite_pos("left"))
 
 
@@ -83,14 +83,20 @@ class Ghost(pygame.sprite.Sprite):
             x, y = 120, 144
         if direction == "up":
             x, y = 24, 144
+        if direction == "boost":
+            x, y = 168, 96
         return (self.images, (2,2), (x, y, x+CROP, y+CROP))
 
     def update(self, state):
         if 'ghosts' in state:
             x, y = state['ghosts'][self.index]
+            #TODO determine direction here
+            sprite = "left"
+            if state['super']:
+                sprite = "boost"
             self.x, self.y = x*CHAR_LENGTH, y*CHAR_LENGTH
             self.rect = pygame.Rect((self.x, self.y) + CHAR_SIZE)
-            self.image.blit(*self.sprite_pos("left"))
+            self.image.blit(*self.sprite_pos(sprite))
 
 def clear_callback(surf, rect):
     color = 0, 0, 0
@@ -108,7 +114,8 @@ def draw_background(mapa, SCREEN):
         
 def draw_wall(SCREEN, x, y):
     wx, wy = scale((x, y))
-    pygame.draw.rect(SCREEN, (100, 100, 100),
+    wall_color = (100,100,100)
+    pygame.draw.rect(SCREEN, wall_color,
                        (wx,wy,CHAR_LENGTH, CHAR_LENGTH), 0)
 
 def draw_energy(SCREEN, x, y, boost=False):
@@ -172,6 +179,7 @@ async def main_loop(q):
         
         try:
             state = json.loads(q.get_nowait())
+            
         except asyncio.queues.QueueEmpty:
             await asyncio.sleep(0.05)
             continue 
