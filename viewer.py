@@ -131,8 +131,10 @@ def draw_info(SCREEN, text, pos):
     erase = pygame.Surface(textsurface.get_size())
     erase.fill((200,200,200))
 
-    if pos > SCREEN.get_size():
-        pos = SCREEN.get_size()[0] - textsurface.get_size()[0], SCREEN.get_size()[1] - textsurface.get_size()[1]
+    if pos[0] > SCREEN.get_size()[0]:
+        pos = SCREEN.get_size()[0] - textsurface.get_size()[0], pos[1]
+    if pos[1] > SCREEN.get_size()[1]:
+        pos = pos[0], SCREEN.get_size()[1] - textsurface.get_size()[1]
 
     SCREEN.blit(erase,pos)
     SCREEN.blit(textsurface,pos)
@@ -181,8 +183,6 @@ async def main_loop(q):
         
         try:
             state = json.loads(q.get_nowait())
-            print(state)
-    
             
         except asyncio.queues.QueueEmpty:
             await asyncio.sleep(0.05)

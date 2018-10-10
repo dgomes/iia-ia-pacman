@@ -5,19 +5,27 @@ import asyncio
 import websockets
 from mapa import Map
 
-async def agent_loop():
-    async with websockets.connect('ws://localhost:8000/player') as websocket:
-        await websocket.send(json.dumps({"cmd": "join", "name": "dummy"}))
-        map_info = await websocket.recv()
+async def agent_loop(server_address = "localhost:8000", agent_name="student"):
+    async with websockets.connect("ws://{}/player".format(server_address)) as websocket:
+
+        # Receive information about static game properties 
+        await websocket.send(json.dumps({"cmd": "join", "name": agent_name}))
+        msg = await websocket.recv()
+        game_properties = json.loads(msg) 
+         
+        mapa = Map(game_properties['map'])
+       
+        #init agent properties 
         key = 'a'
         cur_x, cur_y = None, None
-        while True:
+        while True: 
             r = await websocket.recv()
-            state = json.loads(r)
+            state = json.loads(r) #receive game state
             
             if not state['lives']:
                 print("GAME OVER")
                 return
+
             x, y = state['pacman']
             if x == cur_x and y == cur_y:
                 if key in "ad":
@@ -25,6 +33,8 @@ async def agent_loop():
                 elif key in "ws":
                     key = random.choice("ad")
             cur_x, cur_y = x, y
+
+            #send new key
             await websocket.send(json.dumps({"cmd": "key", "key": key}))
 
 
