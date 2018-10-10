@@ -48,8 +48,9 @@ class Game:
     def score(self):
         return self._score
 
-    def start(self):
+    def start(self, player_name):
         logger.debug("Reset world")
+        self._player_name = player_name
         self._running = True
         
         self.map = Map(self.map.filename)
@@ -128,6 +129,7 @@ class Game:
         self.collision()
         
         self._state = {"step": self._step,
+                       "player": self._player_name,
                        "score": self._score,
                        "lives": self._lives,
                        "super": self._super > 0,  # True -> pacman can eat ghosts

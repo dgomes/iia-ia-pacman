@@ -32,10 +32,8 @@ class Game_server:
                     await asyncio.wait([websocket.send(map_info)])
                     
                     if path == "/player":
-                        self.game.start() 
-                
-                        if "name" in data:
-                            self.current_player_name = data["name"]
+                        self.current_player_name = data["name"]
+                        self.game.start(self.current_player_name) 
 
                 if path == "/player" and data["cmd"] == "key":
                     self.game.keypress(data["key"][0])
@@ -62,7 +60,7 @@ class Game_server:
         if path == "/player":
             logging.debug("Save highscores")
             self.highscores.append((self.current_player_name, self.game.score))
-            self.highscores = sorted(self.highscores, key=lambda s: s[0])[:10]
+            self.highscores = sorted(self.highscores, key=lambda s: -1*s[1])[:10]
     
             with open(self.game.map._filename+".score", 'w') as outfile:
                 json.dump(self.highscores, outfile)

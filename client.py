@@ -3,9 +3,9 @@ import sys
 import json
 import asyncio
 import websockets
+from mapa import Map
 
-
-async def game_loop():
+async def agent_loop():
     async with websockets.connect('ws://localhost:8000/player') as websocket:
         await websocket.send(json.dumps({"cmd": "join", "name": "dummy"}))
         map_info = await websocket.recv()
@@ -29,4 +29,4 @@ async def game_loop():
 
 
 loop = asyncio.get_event_loop()
-loop.run_until_complete(game_loop())
+loop.run_until_complete(agent_loop())

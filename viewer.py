@@ -124,18 +124,18 @@ def draw_energy(SCREEN, x, y, boost=False):
                        (ex+int(CHAR_LENGTH/2),ey+int(CHAR_LENGTH/2)),
                        BOOST_RADIUS if boost else ENERGY_RADIUS, 0)
 
-prev_text = ""
-def draw_info(SCREEN, state):
-    global prev_text
-    myfont = pygame.font.SysFont('Courier Bold', 30)
-   
-    #TODO blit to a surface or sprite and avoid wite over
-    textsurface = myfont.render(prev_text, True, (100, 100, 100))
-    SCREEN.blit(textsurface,(0,0))
-    text = str(state["score"])
+def draw_info(SCREEN, text, pos):
+    myfont = pygame.font.Font(None, 30) 
     textsurface = myfont.render(text, True, (0, 0, 0))
-    prev_text = text
-    SCREEN.blit(textsurface,(0,0))
+
+    erase = pygame.Surface(textsurface.get_size())
+    erase.fill((200,200,200))
+
+    if pos > SCREEN.get_size():
+        pos = SCREEN.get_size()[0] - textsurface.get_size()[0], SCREEN.get_size()[1] - textsurface.get_size()[1]
+
+    SCREEN.blit(erase,pos)
+    SCREEN.blit(textsurface,pos)
 
 async def main_loop(q):
     main_group = pygame.sprite.OrderedUpdates()
@@ -143,7 +143,7 @@ async def main_loop(q):
    
     logging.info("Waiting for map information from server") 
     state = await q.get() #first state message includes map information
-    
+
     newgame_json = json.loads(state)
     mapa = Map(newgame_json["map"])
     SCREEN = pygame.display.set_mode(scale(mapa.size))
@@ -159,12 +159,15 @@ async def main_loop(q):
         pygame.event.pump()
         if pygame.key.get_pressed()[pygame.K_ESCAPE]:
             asyncio.get_event_loop().stop() 
-  
+ 
         main_group.clear(SCREEN, clear_callback)
    
         main_group.draw(SCREEN)
         if "score" in state:
-            draw_info(SCREEN, state)
+            text = str(state["score"])
+            draw_info(SCREEN, text.zfill(6), (0,0))
+            text = str(state["player"])
+            draw_info(SCREEN, text, (4000,0))
         if "energy" in state:
             for x, y in state["energy"]:
                 draw_energy(SCREEN, x, y)
@@ -174,11 +177,12 @@ async def main_loop(q):
        
         main_group.update(state)
        
-        
         pygame.display.flip()
         
         try:
             state = json.loads(q.get_nowait())
+            print(state)
+    
             
         except asyncio.queues.QueueEmpty:
             await asyncio.sleep(0.05)
