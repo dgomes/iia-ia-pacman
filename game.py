@@ -12,9 +12,11 @@ LIVES = 3
 POINT_ENERGY = 1
 POINT_BOOST = 10
 POINT_GHOST = 50
+POINT_TIME_BONUS = 1
 BOOST_TIMEOUT = 30
 INITIAL_SCORE = 0
-TIMEOUT = 100
+TIME_BONUS_STEPS = 5
+TIMEOUT = 5000
 GAME_SPEED = 10 
 
 class Game:
@@ -86,6 +88,7 @@ class Game:
 
         if len(self._energy) + len(self._boost) == 0:
             logger.info("Level completed")
+            self.score += ((TIMEOUT - self._step) % TIME_BONUS_STEPS) * POINT_TIME_BONUS 
             self.stop()
 
     def collision(self):
