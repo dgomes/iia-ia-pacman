@@ -88,7 +88,7 @@ class Game:
 
         if len(self._energy) + len(self._boost) == 0:
             logger.info("Level completed")
-            self.score += ((TIMEOUT - self._step) % TIME_BONUS_STEPS) * POINT_TIME_BONUS 
+            self._score += ((TIMEOUT - self._step) % TIME_BONUS_STEPS) * POINT_TIME_BONUS 
             self.stop()
 
     def collision(self):
