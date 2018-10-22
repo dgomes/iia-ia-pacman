@@ -7,6 +7,7 @@ import json
 import asyncio
 import websockets
 import logging
+from game import GAME_SPEED
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('websockets')
@@ -185,7 +186,7 @@ async def main_loop(q):
             state = json.loads(q.get_nowait())
             
         except asyncio.queues.QueueEmpty:
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(1./GAME_SPEED)
             continue 
         
 

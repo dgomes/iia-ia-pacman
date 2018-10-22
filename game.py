@@ -1,3 +1,4 @@
+import os
 import asyncio
 import json
 import logging
@@ -16,21 +17,31 @@ POINT_TIME_BONUS = 1
 BOOST_TIMEOUT = 30
 INITIAL_SCORE = 0
 TIME_BONUS_STEPS = 5
-TIMEOUT = 5000
+TIMEOUT = 3000 
 GAME_SPEED = 10 
+MAX_HIGHSCORES = 10
+
 
 class Game:
-    def __init__(self, mapfile, n_ghosts=GHOSTS, lives=LIVES):
+    def __init__(self, mapfile, n_ghosts=GHOSTS, lives=LIVES, timeout=TIMEOUT):
         logger.info("Game({}, {}, {})".format(mapfile, n_ghosts, lives))
         self._running = False
+        self._timeout = timeout
         self._state = {}
         self._n_ghosts = n_ghosts
         self._initial_lives = lives
         self.map = Map(mapfile)
+        
+        self._highscores = [] 
+        if os.path.isfile(mapfile+".score"):
+            with open(mapfile+".score", 'r') as infile:
+                self._highscores = json.load(infile)
 
     def info(self):
         return json.dumps({"map": self.map.filename,
                            "ghosts": self._n_ghosts,
+                           "fps": GAME_SPEED,
+                           "highscores": self.highscores,
                             })
 
     def consume(self, pos):
@@ -50,6 +61,10 @@ class Game:
     def score(self):
         return self._score
 
+    @property
+    def highscores(self):
+        return self._highscores
+
     def start(self, player_name):
         logger.debug("Reset world")
         self._player_name = player_name
@@ -68,11 +83,21 @@ class Game:
 
     def stop(self):
         logger.info("GAME OVER")
+        self.save_highscores()
         self._running = False
 
     def quit(self):
         logger.debug("Quit")
         self._running = False
+
+    def save_highscores(self):
+        #update highscores
+        logger.debug("Save highscores")
+        self._highscores.append((self._player_name, self.score))
+        self._highscores = sorted(self._highscores, key=lambda s: -1*s[1])[:MAX_HIGHSCORES]
+    
+        with open(self.map._filename+".score", 'w') as outfile:
+            json.dump(self._highscores, outfile)
 
     def keypress(self, key):
         self._lastkeypress = key
@@ -88,7 +113,7 @@ class Game:
 
         if len(self._energy) + len(self._boost) == 0:
             logger.info("Level completed")
-            self._score += ((TIMEOUT - self._step) % TIME_BONUS_STEPS) * POINT_TIME_BONUS 
+            self._score += ((self._timeout - self._step) % TIME_BONUS_STEPS) * POINT_TIME_BONUS 
             self.stop()
 
     def collision(self):
@@ -98,7 +123,7 @@ class Game:
                     self._score += POINT_GHOST
                     g.respawn()
                 else:
-                    logger.info("DEAD")
+                    logger.info("PACMAN has died")
                     if self._lives:
                         self._lives -= 1
                         self._pacman = self.map.pacman_spawn
@@ -115,7 +140,7 @@ class Game:
             return
 
         self._step += 1
-        if self._step == TIMEOUT:
+        if self._step == self._timeout:
             self.stop()
 
         if self._super > 0:
