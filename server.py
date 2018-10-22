@@ -1,4 +1,4 @@
-import functools
+import argparse
 import asyncio
 import json
 import logging
@@ -19,7 +19,7 @@ Player = namedtuple('Player', ['name', 'ws'])
 class Game_server:
     def __init__(self, mapfile, ghosts, lives, timeout):
         self.game = Game(mapfile, ghosts, lives, timeout) 
-        self.hotseat = asyncio.Lock()
+        self.players = asyncio.Queue()
         self.viewers = set()
         self.current_player = None 
 
@@ -29,67 +29,46 @@ class Game_server:
                 data = json.loads(message)
                 if data["cmd"] == "join":
                     map_info = self.game.info()
-                    await asyncio.wait([websocket.send(map_info)])
+                    await websocket.send(map_info)
                     
                     if path == "/player":
-                        while self.game.running:
-                            logger.debug("Wait for current game end")
-                            await asyncio.sleep(1)
+                        print("New player")
+                        await self.players.put(Player(data["name"], websocket))
 
-                        logger.debug("Start Game")
-                        await self.hotseat.acquire()
-                        self.current_player = Player(data["name"], websocket)
-                        self.game.start(self.current_player.name)
-                    
                     if path == "/viewer":
                         self.viewers.add(websocket)
 
-                if data["cmd"] == "key" and path == "/player":
+                if data["cmd"] == "key" and self.current_player.ws == websocket:
                     logger.debug((self.current_player.name, data))
                     self.game.keypress(data["key"][0])
 
         except websockets.exceptions.ConnectionClosed as c:
             logger.info("Client disconnected")
-        finally:
-            if websocket in self.viewers:
-                self.viewers.remove(websocket)
-            if self.game.running and self.current_player.ws == websocket:
-                logger.info("stop game, player has left")
-                self.game.stop()
 
-    async def state_broadcast_handler(self, websocket, path):
-        while path == "/viewer" or not self.game.running or not self.current_player.ws == websocket:
-            await asyncio.sleep(.1)
-        
-        try:
-            while self.game.running:
-                #player is the only responsible for triggering game updates
-                if path == "/player" and self.current_player.ws == websocket:
+    async def mainloop(self):
+        while True:
+            logger.info("Waiting for players")
+            self.current_player = await self.players.get()
+            
+            if self.current_player.ws.closed:
+                logger.error("<{}> disconnect while waiting".format(self.current_player.name))
+                continue
+           
+            try:
+                logger.info("Starting game for <{}>".format(self.current_player.name))
+                self.game.start(self.current_player.name)
+            
+                while self.game.running:
                     await self.game.next_frame()
-                    await asyncio.wait([self.current_player.ws.send(self.game.state)])
+                    await self.current_player.ws.send(self.game.state)
                     if self.viewers:
                         await asyncio.wait([client.send(self.game.state) for client in self.viewers])
+                logger.info("Disconnecting <{}>".format(self.current_player.name))
+            finally:
+                await self.current_player.ws.close()
 
-        finally:
-            #make sure we release the hotseat no matter what
-            self.hotseat.release()
-
-
-async def client_handler(websocket, path, game):
-    incomming_task = asyncio.ensure_future(
-        game.incomming_handler(websocket, path))
-    state_broadcast_task = asyncio.ensure_future(
-        game.state_broadcast_handler(websocket, path))
-    done, pending = await asyncio.wait(
-        [incomming_task, state_broadcast_task],
-        return_when=asyncio.FIRST_COMPLETED,
-    )
-    for task in pending:
-        task.cancel()
-
+            
 if __name__ == "__main__":
-
-    import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--bind", help="IP address to bind to", default="localhost")
     parser.add_argument("--port", help="TCP port", type=int, default=8000)
@@ -101,11 +80,11 @@ if __name__ == "__main__":
 
     g = Game_server(args.map, args.ghosts, args.lives, args.timeout)
 
-    game_handler = functools.partial(client_handler, game=g)
-    start_server = websockets.serve(game_handler, args.bind, args.port)
+    game_loop_task = asyncio.ensure_future(g.mainloop())
+
+    websocket_server = websockets.serve(g.incomming_handler, args.bind, args.port)
 
     loop = asyncio.get_event_loop()
-    
-    loop.run_until_complete(start_server)
-    loop.run_forever()
+    loop.run_until_complete(asyncio.gather(websocket_server, game_loop_task))
+    loop.close()
 
