@@ -12,8 +12,8 @@ logger = logging.getLogger('websockets')
 logger.setLevel(logging.WARN)
 
 class Game_server:
-    def __init__(self, mapfile, ghosts):
-        self.game = Game(mapfile, ghosts) 
+    def __init__(self, mapfile, ghosts, lives):
+        self.game = Game(mapfile, ghosts, lives) 
         self.clients = set()
         self.highscores = [] 
         if os.path.isfile(mapfile+".score"):
@@ -31,7 +31,8 @@ class Game_server:
                     map_info = self.game.info()
                     await asyncio.wait([websocket.send(map_info)])
                     
-                    if path == "/player":
+                    if path == "/player" and not self.current_player_name:
+                        self.current_player = websocket
                         self.current_player_name = data["name"]
                         self.game.start(self.current_player_name) 
 
@@ -50,11 +51,10 @@ class Game_server:
         while path == "/viewer" or not self.game.running:
             await asyncio.sleep(.1)
         while self.game.running:
-            if path == "/player":
+            if path == "/player" and self.current_player == websocket:
                 await self.game.next_frame()
                 if self.clients:       # asyncio.wait doesn't accept an empty list
                     await asyncio.wait([client.send(self.game.state) for client in self.clients])
-                await asyncio.sleep(.1)
     
         #update highscores
         if path == "/player":
@@ -80,11 +80,20 @@ async def client_handler(websocket, path, game):
         task.cancel()
 
 if __name__ == "__main__":
-    mapfile = "data/map1.bmp"
-    g = Game_server(mapfile, 1)
+
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--bind", help="IP address to bind to", default="localhost")
+    parser.add_argument("--port", help="TCP port", type=int, default=8000)
+    parser.add_argument("--ghosts", help="Number of ghosts", type=int, default=1)
+    parser.add_argument("--lives", help="Number of lives", type=int, default=3)
+    parser.add_argument("--map", help="path to the map bmp", default="data/map1.bmp")
+    args = parser.parse_args()
+
+    g = Game_server(args.map, args.ghosts, args.lives)
 
     game_handler = functools.partial(client_handler, game=g)
-    start_server = websockets.serve(game_handler, 'localhost', 8000)
+    start_server = websockets.serve(game_handler, args.bind, args.port)
 
     loop = asyncio.get_event_loop()
     
