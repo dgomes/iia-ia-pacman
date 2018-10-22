@@ -7,7 +7,6 @@ import json
 import asyncio
 import websockets
 import logging
-from game import GAME_SPEED
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('websockets')
@@ -149,6 +148,7 @@ async def main_loop(q):
 
     newgame_json = json.loads(state)
     mapa = Map(newgame_json["map"])
+    GAME_SPEED = newgame_json["fps"]
     SCREEN = pygame.display.set_mode(scale(mapa.size))
    
     draw_background(mapa, SCREEN)
