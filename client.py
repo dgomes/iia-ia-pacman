@@ -3,6 +3,7 @@ import sys
 import json
 import asyncio
 import websockets
+import os
 from mapa import Map
 
 async def agent_loop(server_address = "localhost:8000", agent_name="student"):
@@ -21,7 +22,6 @@ async def agent_loop(server_address = "localhost:8000", agent_name="student"):
         while True: 
             r = await websocket.recv()
             state = json.loads(r) #receive game state
-            
             if not state['lives']:
                 print("GAME OVER")
                 return
@@ -39,4 +39,7 @@ async def agent_loop(server_address = "localhost:8000", agent_name="student"):
 
 
 loop = asyncio.get_event_loop()
-loop.run_until_complete(agent_loop())
+SERVER = os.environ.get('SERVER', 'localhost')
+PORT = os.environ.get('PORT', '8000')
+NAME = os.environ.get('NAME', 'student')
+loop.run_until_complete(agent_loop("{}:{}".format(SERVER,PORT), NAME))
