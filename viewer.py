@@ -7,18 +7,19 @@ import json
 import asyncio
 import websockets
 import logging
+import argparse
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('websockets')
 logger.setLevel(logging.WARN)
 
-CHAR_LENGTH = 26
+CHAR_LENGTH = 26 
 CHAR_SIZE= CHAR_LENGTH, CHAR_LENGTH #22 + 2px border
 ENERGY_RADIUS = 4
 BOOST_RADIUS = 8
 
-async def messages_handler(queue):
-    async with websockets.connect('ws://localhost:8000/viewer') as websocket:
+async def messages_handler(ws_path, queue):
+    async with websockets.connect(ws_path) as websocket:
         await websocket.send(json.dumps({"cmd": "join"}))
 
         while True:
@@ -190,18 +191,20 @@ async def main_loop(q):
             continue 
         
 
-async def main():
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--server", help="IP address of the server", default="localhost")
+    parser.add_argument("--port", help="TCP port", type=int, default=8000)
+    args = parser.parse_args()
 
+    LOOP = asyncio.get_event_loop()
     pygame.font.init()
     q = asyncio.Queue()
-
-    await asyncio.gather(messages_handler(q), main_loop(q)) 
-
-if __name__ == "__main__":
-    LOOP = asyncio.get_event_loop()
+    
+    ws_path = 'ws://{}:{}/viewer'.format(args.server, args.port)
 
     try:
-        LOOP.run_until_complete(main())
+        LOOP.run_until_complete(asyncio.gather(messages_handler(ws_path, q), main_loop(q)))
     finally:
         LOOP.stop()
         pygame.quit()
