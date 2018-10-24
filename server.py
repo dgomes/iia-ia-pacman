@@ -64,8 +64,11 @@ class Game_server:
                     if self.viewers:
                         await asyncio.wait([client.send(self.game.state) for client in self.viewers])
                 logger.info("Disconnecting <{}>".format(self.current_player.name))
+            except websockets.exceptions.ConnectionClosed as c:
+                self.current_player = None
             finally:
-                await self.current_player.ws.close()
+                if self.current_player:
+                    await self.current_player.ws.close()
 
             
 if __name__ == "__main__":
