@@ -70,7 +70,7 @@ class Game_server:
             
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--bind", help="IP address to bind to", default="localhost")
+    parser.add_argument("--bind", help="IP address to bind to", default="")
     parser.add_argument("--port", help="TCP port", type=int, default=8000)
     parser.add_argument("--ghosts", help="Number of ghosts", type=int, default=1)
     parser.add_argument("--lives", help="Number of lives", type=int, default=3)
