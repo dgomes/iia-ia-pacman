@@ -44,6 +44,8 @@ class Game_server:
 
         except websockets.exceptions.ConnectionClosed as c:
             logger.info("Client disconnected")
+            if websocket in self.viewers:
+                self.viewers.remove(websocket)
 
     async def mainloop(self):
         while True:
