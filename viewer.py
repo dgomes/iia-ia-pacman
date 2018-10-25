@@ -13,10 +13,19 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('websockets')
 logger.setLevel(logging.WARN)
 
-CHAR_LENGTH = 26 
+PACMAN = {'up': (24, 72), 'left': (0, 72), 'down': (120, 72), 'right': (96, 72)}
+
+RED_GHOST = {'up': (168, 144), 'left': (96, 144), 'down': (48, 144), 'right': (0, 144)}
+PINK_GHOST = {'up': (168, 192), 'left': (96, 192), 'down': (48, 192), 'right': (0, 192)}
+ORANGE_GHOST = {'up': (168, 216), 'left': (96, 216), 'down': (48, 216), 'right': (0, 216)}
+BLUE_GHOST = {'up': (8*24+168, 192), 'left': (8*24+96, 192), 'down': (8*24+48, 192), 'right': (8*24+0, 192)}
+GHOSTS = [RED_GHOST, PINK_GHOST, ORANGE_GHOST, BLUE_GHOST]
+
+CHAR_LENGTH = 26
 CHAR_SIZE= CHAR_LENGTH, CHAR_LENGTH #22 + 2px border
 ENERGY_RADIUS = 4
 BOOST_RADIUS = 8
+SCALE = None 
 
 async def messages_handler(ws_path, queue):
     async with websockets.connect(ws_path) as websocket:
@@ -35,69 +44,82 @@ class PacMan(pygame.sprite.Sprite):
         self.images = kw["images"]
         self.rect = pygame.Rect((self.x, self.y) + CHAR_SIZE)
         self.image = pygame.Surface(CHAR_SIZE)
-        #TODO determine direction of pacman
-        self.image.blit(*self.sprite_pos("left"))
+        self.direction = "left"
+        self.image.blit(*self.sprite_pos())
+        self.image = pygame.transform.scale(self.image, scale((1,1)))
         super().__init__()
    
-    def sprite_pos(self, direction):
+    def sprite_pos(self, new_pos=(0,0)):
         CROP = 22 
-        x, y = None, None
+        x, y = new_pos 
+        
+        if x > self.x:
+            self.direction = "right"
+        if x < self.x:
+            self.direction = "left"
+        if y > self.y:
+            self.direction = "down"
+        if y < self.y:
+            self.direction = "up"
 
-        if direction == "left":
-            x, y = 48, 72
-        if direction == "right":
-            x, y = 96, 72
-        if direction == "down":
-            x, y = 120, 72
-        if direction == "up":
-            x, y = 24, 72
+        x, y = PACMAN[self.direction]
         return (self.images, (2,2), (x, y, x+CROP, y+CROP))
 
     def update(self, state):
         if 'pacman' in state:
             x, y = state['pacman']
-            #TODO determine direction of pacman 
-            self.x, self.y = x*CHAR_LENGTH, y*CHAR_LENGTH
-            self.rect = pygame.Rect((self.x, self.y) + CHAR_SIZE)
-            self.image.blit(*self.sprite_pos("left"))
+            sx, sy = scale((x, y))
+            self.rect = pygame.Rect((sx, sy) + CHAR_SIZE)
+            self.image = pygame.Surface(CHAR_SIZE)
+            self.image.fill((0,0,0))
+            self.image.blit(*self.sprite_pos((sx, sy)))
+            self.image = pygame.transform.scale(self.image, scale((1, 1)))
 
+            self.x, self.y = sx, sy
 
 class Ghost(pygame.sprite.Sprite):
     def __init__(self, *args, **kw):
         self.x, self.y = (kw.pop("pos", ((kw.pop("x", 0), kw.pop("y", 0)))))
         self.index = kw.pop("index", 0)
         self.images = kw["images"]
+        self.direction = "left"
         self.rect = pygame.Rect((self.x, self.y) + CHAR_SIZE)
         self.image = pygame.Surface(CHAR_SIZE)
-        self.image.blit(*self.sprite_pos("left"))
+        self.image.blit(*self.sprite_pos((self.x, self.y)))
+        self.image = pygame.transform.scale(self.image, scale((1,1)))
         super().__init__()
    
-    def sprite_pos(self, direction):
+    def sprite_pos(self, new_pos, boost=False):
         CROP = 22 
-        x, y = None, None
+        x, y = new_pos 
 
-        if direction == "left":
-            x, y = 48, 144 
-        if direction == "right":
-            x, y = 96, 144 
-        if direction == "down":
-            x, y = 120, 144
-        if direction == "up":
-            x, y = 24, 144
-        if direction == "boost":
+        if x > self.x:
+            self.direction = "right"
+        if x < self.x:
+            self.direction = "left"
+        if y > self.y:
+            self.direction = "down"
+        if y < self.y:
+            self.direction = "up"
+
+        x, y = GHOSTS[self.index][self.direction] 
+
+        if boost:
             x, y = 168, 96
         return (self.images, (2,2), (x, y, x+CROP, y+CROP))
 
     def update(self, state):
         if 'ghosts' in state:
             x, y = state['ghosts'][self.index]
-            #TODO determine direction here
-            sprite = "left"
-            if state['super']:
-                sprite = "boost"
-            self.x, self.y = x*CHAR_LENGTH, y*CHAR_LENGTH
-            self.rect = pygame.Rect((self.x, self.y) + CHAR_SIZE)
-            self.image.blit(*self.sprite_pos(sprite))
+            sx, sy = scale((x, y))
+            self.rect = pygame.Rect((sx, sy) + CHAR_SIZE)
+            self.image = pygame.Surface(CHAR_SIZE)
+            self.image.fill((0,0,0))
+            self.image.blit(*self.sprite_pos((sx, sy), state['super']))
+            self.image = pygame.transform.scale(self.image, scale((1,1)))
+
+            self.x, self.y = sx, sy
+
 
 def clear_callback(surf, rect):
     color = 0, 0, 0
@@ -105,11 +127,11 @@ def clear_callback(surf, rect):
 
 def scale(pos):
     x, y = pos
-    return x * CHAR_LENGTH, y * CHAR_LENGTH 
+    return int(x * CHAR_LENGTH / SCALE), int(y * CHAR_LENGTH / SCALE)
 
 def draw_background(mapa, SCREEN):
-    for x in range(mapa.size[0]):
-        for y in range(mapa.size[1]):
+    for x in range(int(mapa.size[0])):
+        for y in range(int(mapa.size[1])):
             if mapa.is_wall((x,y)):
                 draw_wall(SCREEN, x, y)
         
@@ -117,13 +139,13 @@ def draw_wall(SCREEN, x, y):
     wx, wy = scale((x, y))
     wall_color = (100,100,100)
     pygame.draw.rect(SCREEN, wall_color,
-                       (wx,wy,CHAR_LENGTH, CHAR_LENGTH), 0)
+                       (wx,wy,*scale((1,1))), 0)
 
 def draw_energy(SCREEN, x, y, boost=False):
     ex, ey = scale((x, y))
     pygame.draw.circle(SCREEN, (200, 0, 0),
-                       (ex+int(CHAR_LENGTH/2),ey+int(CHAR_LENGTH/2)),
-                       BOOST_RADIUS if boost else ENERGY_RADIUS, 0)
+                       (ex+int(CHAR_LENGTH/SCALE/2),ey+int(CHAR_LENGTH/SCALE/2)),
+                       int(BOOST_RADIUS/SCALE) if boost else int(ENERGY_RADIUS/SCALE), 0)
 
 def draw_info(SCREEN, text, pos):
     myfont = pygame.font.Font(None, 30) 
@@ -166,7 +188,6 @@ async def main_loop(q):
  
         main_group.clear(SCREEN, clear_callback)
    
-        main_group.draw(SCREEN)
         if "score" in state:
             text = str(state["score"])
             draw_info(SCREEN, text.zfill(6), (0,0))
@@ -178,6 +199,7 @@ async def main_loop(q):
         if "boost" in state:
             for x, y in state["boost"]:
                 draw_energy(SCREEN, x, y, True)
+        main_group.draw(SCREEN)
        
         main_group.update(state)
        
@@ -194,8 +216,10 @@ async def main_loop(q):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--server", help="IP address of the server", default="localhost")
+    parser.add_argument("--scale", help="reduce size of window by x times", type=int, default=1)
     parser.add_argument("--port", help="TCP port", type=int, default=8000)
     args = parser.parse_args()
+    SCALE = args.scale
 
     LOOP = asyncio.get_event_loop()
     pygame.font.init()
