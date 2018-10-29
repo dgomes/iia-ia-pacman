@@ -65,6 +65,8 @@ class Game_server:
                     await self.current_player.ws.send(self.game.state)
                     if self.viewers:
                         await asyncio.wait([client.send(self.game.state) for client in self.viewers])
+                await self.current_player.ws.send(json.dumps({"score": self.game.score}))
+
                 logger.info("Disconnecting <{}>".format(self.current_player.name))
             except websockets.exceptions.ConnectionClosed as c:
                 self.current_player = None
