@@ -18,9 +18,8 @@ BOOST_TIMEOUT = 30
 INITIAL_SCORE = 0
 TIME_BONUS_STEPS = 5
 TIMEOUT = 3000 
-GAME_SPEED = 10 
+GAME_SPEED =10 
 MAX_HIGHSCORES = 10
-
 
 class Game:
     def __init__(self, mapfile, n_ghosts=GHOSTS, lives=LIVES, timeout=TIMEOUT):
@@ -31,7 +30,6 @@ class Game:
         self._n_ghosts = n_ghosts
         self._initial_lives = lives
         self.map = Map(mapfile)
-        
         self._highscores = [] 
         if os.path.isfile(mapfile+".score"):
             with open(mapfile+".score", 'r') as infile:
@@ -76,9 +74,8 @@ class Game:
         logger.debug("Reset world")
         self._player_name = player_name
         self._running = True
-        
         self.map = Map(self.map.filename)
-        self._step = 0
+        self._step = 0 
         self._ghosts = [Ghost(self.map) for g in range(0,self._n_ghosts)]
         self._pacman = self.map.pacman_spawn
         self._energy = self.map.energy
