@@ -2,7 +2,6 @@ import os
 import asyncio
 import json
 import logging
-import random
 from ghost import Ghost
 from mapa import Map, Tiles
 
@@ -74,11 +73,7 @@ class Game:
         
         self.map = Map(self.map.filename)
         self._step = 0
-        wait = []
-        for i in range(1,self.max_wait_ghost):
-            wait.append(i)
-        random.shuffle(wait)
-        self._ghosts = [Ghost(self.map, wait[g]) for g in range(0,self._n_ghosts)]
+        self._ghosts = [Ghost(self.map) for g in range(0,self._n_ghosts)]
         self._pacman = self.map.pacman_spawn
         self._energy = self.map.energy
         self._boost = self.map.boost
