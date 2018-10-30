@@ -4,16 +4,16 @@ import logging
 from mapa import Map
 
 logger = logging.getLogger('Ghost')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 class Ghost:
-    def __init__(self, mapa, buff_size=9, wait_max=10):
+    def __init__(self, mapa, wait, buff_size=9):
         self.map = mapa
         self.respawn()
         self.direction = ""
         self.buff_size = buff_size
         self.buff_pos = []
-        self.wait = random.randint(0, wait_max)
+        self.wait = wait
 
     def respawn(self):
         x, y = self.map._ghost_spawn
@@ -109,7 +109,7 @@ class Ghost:
                 dirs = self.directions(p_pos, g_pos)
                 if state['super'] is True:
                     dirs = self.reverse_directions(dirs)
-                    logging.debug("GHOST RUN AWAY...")
+                    logger.debug("GHOST RUN AWAY...")
                 logger.debug("GHOST DIRS = "+str(dirs))
                 # Compute the scores of each direction based on the buffer
                 scores = self.scores(g_pos, dirs)
