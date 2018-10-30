@@ -2,7 +2,6 @@ import os
 import asyncio
 import json
 import logging
-import random
 from ghost import Ghost
 from mapa import Map, Tiles
 
