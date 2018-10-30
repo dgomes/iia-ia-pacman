@@ -4,7 +4,7 @@ import logging
 from mapa import Map
 
 logger = logging.getLogger('Ghost')
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 
 def combine_scores(l, *args):
@@ -69,7 +69,6 @@ class Buffer:
 
     def __str__( self ):
         return str(self.buff)
-
 
 class Ghost:
     def __init__(self, mapa, level=0, wait_max=20):
@@ -137,7 +136,7 @@ class Ghost:
                 dirs = ['d', 's', 'w', 'a']
             else:
                 dirs = ['d', 'w', 's', 'a']
-
+                
             if self.zombie:
                 dirs = self.reverse_directions(dirs)
                 
@@ -184,7 +183,7 @@ class Ghost:
 
         logger.debug("GHOST SCORES = "+str(scores))
         return scores
-
+    
     def update(self, state):
         if self.zombie:
             self.zombie_timeout-=1
@@ -209,7 +208,7 @@ class Ghost:
                 # Use the maximum score
                 idx = scores.index(max(scores))
                 self.direction = dirs[idx]
-                logger.debug("GHOST DIR  = "+self.direction)
+                logger.debug("GHOST DIRS  = "+self.direction)
                 # Update new position
                 self.buffer.add(g_pos)
                 logger.debug("GHOST BUFF = "+str(self.buffer))
