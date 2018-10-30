@@ -7,7 +7,7 @@ logger = logging.getLogger('Ghost')
 logger.setLevel(logging.INFO)
 
 class Ghost:
-    def __init__(self, mapa, buff_size=9, wait_max=10):
+    def __init__(self, mapa, wait, buff_size=9):
         self.map = mapa
         self.respawn()
         self.direction = ""
@@ -126,7 +126,7 @@ class Ghost:
                 dirs = self.directions(p_pos, g_pos)
                 if self.zombie:
                     dirs = self.reverse_directions(dirs)
-                    logging.debug("GHOST RUN AWAY...")
+                    logger.debug("GHOST RUN AWAY...")
                 logger.debug("GHOST DIRS = "+str(dirs))
                 # Compute the scores of each direction based on the buffer
                 scores = self.scores(g_pos, dirs)
