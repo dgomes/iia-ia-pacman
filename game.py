@@ -21,7 +21,6 @@ TIMEOUT = 3000
 GAME_SPEED = 10 
 MAX_HIGHSCORES = 10
 
-
 class Game:
     def __init__(self, mapfile, n_ghosts=GHOSTS, lives=LIVES, timeout=TIMEOUT):
         logger.info("Game({}, {}, {})".format(mapfile, n_ghosts, lives))
@@ -75,7 +74,6 @@ class Game:
         logger.debug("Reset world")
         self._player_name = player_name
         self._running = True
-        
         self.map = Map(self.map.filename)
         self._step = 0
         self._ghosts = [Ghost(self.map) for g in range(0,self._n_ghosts)]
