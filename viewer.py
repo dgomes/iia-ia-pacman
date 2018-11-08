@@ -171,6 +171,8 @@ async def main_loop(q):
 
     newgame_json = json.loads(state)
     mapa = Map(newgame_json["map"])
+    for entry in newgame_json["highscores"]:
+        print(entry)
     GAME_SPEED = newgame_json["fps"]
     SCREEN = pygame.display.set_mode(scale(mapa.size))
    

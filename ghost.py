@@ -4,7 +4,7 @@ import logging
 from mapa import Map
 
 logger = logging.getLogger('Ghost')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 class Ghost:
     def __init__(self, mapa, buff_size=9, wait_max=10):
@@ -14,11 +14,21 @@ class Ghost:
         self.buff_size = buff_size
         self.buff_pos = []
         self.wait = random.randint(0, wait_max)
+        self.zombie_timeout = 0
 
     def respawn(self):
         x, y = self.map._ghost_spawn
         self.x = x
         self.y = y 
+        self.zombie_timeout = 0
+
+    def make_zombie(self, timeout):
+        '''Ghost will be vulnerable during a timeout.'''
+        self.zombie_timeout = timeout
+
+    @property
+    def zombie(self):
+        return self.zombie_timeout > 0
 
     @property
     def pos(self):
@@ -99,6 +109,13 @@ class Ghost:
 
 
     def update(self, state):
+        if self.zombie:
+            self.zombie_timeout-=1
+
+            #if zombie we move at HALF speed by skipping steps
+            if state['step'] % 2 == 0:
+                return
+
         if self.wait > 0:
             self.wait -= 1
         else:
@@ -107,7 +124,7 @@ class Ghost:
                 g_pos = (self.x, self.y)
                 # Find the right direction
                 dirs = self.directions(p_pos, g_pos)
-                if state['super'] is True:
+                if self.zombie:
                     dirs = self.reverse_directions(dirs)
                     logging.debug("GHOST RUN AWAY...")
                 logger.debug("GHOST DIRS = "+str(dirs))

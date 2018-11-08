@@ -109,7 +109,8 @@ class Game:
             self._score += POINT_ENERGY
         elif c == Tiles.BOOST:
             self._score += POINT_BOOST
-            self._super = BOOST_TIMEOUT
+            for g in self._ghosts:
+                g.make_zombie(BOOST_TIMEOUT)
 
         if len(self._energy) + len(self._boost) == 0:
             logger.info("Level completed")
@@ -119,7 +120,7 @@ class Game:
     def collision(self):
         for g in self._ghosts:
             if g.pos == self._pacman and self._running:
-                if self._super:
+                if g.zombie:
                     self._score += POINT_GHOST
                     g.respawn()
                 else:
@@ -143,9 +144,6 @@ class Game:
         if self._step == self._timeout:
             self.stop()
 
-        if self._super > 0:
-            self._super -= 1
-
         if self._step % 100 == 0:
             logger.debug("[{}] SCORE {} - LIVES {}".format(self._step, self._score, self._lives))
   
@@ -160,7 +158,7 @@ class Game:
                        "player": self._player_name,
                        "score": self._score,
                        "lives": self._lives,
-                       "super": self._super > 0,  # True -> pacman can eat ghosts
+                       "super": any([g.zombie for g in self._ghosts]),  # True -> pacman can eat at least one ghost
                        "pacman": self._pacman,
                        "ghosts": [g.pos for g in self._ghosts],
                        "energy": self._energy,
