@@ -76,7 +76,6 @@ class Game:
         self._pacman = self.map.pacman_spawn
         self._energy = self.map.energy
         self._boost = self.map.boost
-        self._super = False
         self._lastkeypress = "d" 
         self._score = INITIAL_SCORE 
         self._lives = self._initial_lives 
@@ -158,9 +157,8 @@ class Game:
                        "player": self._player_name,
                        "score": self._score,
                        "lives": self._lives,
-                       "super": any([g.zombie for g in self._ghosts]),  # True -> pacman can eat at least one ghost
                        "pacman": self._pacman,
-                       "ghosts": [g.pos for g in self._ghosts],
+                       "ghosts": [(g.pos, g.zombie) for g in self._ghosts],
                        "energy": self._energy,
                        "boost": self._boost,
                        }
