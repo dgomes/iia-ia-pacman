@@ -136,8 +136,10 @@ class Ghost:
                     # Find the right direction
                     dirs = self.directions(p_pos, g_pos)
                     if state['super'] is True:
-                        dirs = self.reverse_directions(dirs)
+                        #dirs = self.reverse_directions(dirs)
                         logger.debug("GHOST RUN AWAY...")
+                        dirs = ['w','s','a','d']
+                        random.shuffle(dirs)
                     logger.debug("GHOST DIRS = "+str(dirs))
                     # Compute the scores of each direction based on the buffer
                     scores = self.dirs_scores(g_pos, dirs)
