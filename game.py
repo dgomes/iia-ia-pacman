@@ -41,6 +41,12 @@ class Game:
         return json.dumps({"map": self.map.filename,
                            "ghosts": self._n_ghosts,
                            "fps": GAME_SPEED,
+                           "timeout": TIMEOUT,
+                           "lives": LIVES,
+                           "points": {"energy": POINT_ENERGY,
+                                      "boost": POINT_BOOST,
+                                      "ghost": POINT_GHOST,
+                                      "time_bonus": POINT_TIME_BONUS},
                            "boost_timeout": BOOST_TIMEOUT,
                            "highscores": self.highscores,
                             })
