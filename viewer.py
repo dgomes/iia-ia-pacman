@@ -110,12 +110,12 @@ class Ghost(pygame.sprite.Sprite):
 
     def update(self, state):
         if 'ghosts' in state:
-            x, y = state['ghosts'][self.index]
+            (x, y) , zombie = state['ghosts'][self.index]
             sx, sy = scale((x, y))
             self.rect = pygame.Rect((sx, sy) + CHAR_SIZE)
             self.image = pygame.Surface(CHAR_SIZE)
             self.image.fill((0,0,0))
-            self.image.blit(*self.sprite_pos((sx, sy), state['super']))
+            self.image.blit(*self.sprite_pos((sx, sy), zombie))
             self.image = pygame.transform.scale(self.image, scale((1,1)))
 
             self.x, self.y = sx, sy
@@ -171,6 +171,8 @@ async def main_loop(q):
 
     newgame_json = json.loads(state)
     mapa = Map(newgame_json["map"])
+    for entry in newgame_json["highscores"]:
+        print(entry)
     GAME_SPEED = newgame_json["fps"]
     SCREEN = pygame.display.set_mode(scale(mapa.size))
    
