@@ -110,7 +110,7 @@ class Ghost(pygame.sprite.Sprite):
 
     def update(self, state):
         if 'ghosts' in state:
-            (x, y) , zombie = state['ghosts'][self.index]
+            (x, y), zombie, z_timeout = state['ghosts'][self.index]
             sx, sy = scale((x, y))
             self.rect = pygame.Rect((sx, sy) + CHAR_SIZE)
             self.image = pygame.Surface(CHAR_SIZE)
