@@ -165,7 +165,7 @@ class Game:
                        "score": self._score,
                        "lives": self._lives,
                        "pacman": self._pacman,
-                       "ghosts": [(g.pos, g.zombie) for g in self._ghosts],
+                       "ghosts": [(g.pos, g.zombie, g.zombie_timeout) for g in self._ghosts],
                        "energy": self._energy,
                        "boost": self._boost,
                        }
