@@ -6,13 +6,87 @@ from mapa import Map
 logger = logging.getLogger('Ghost')
 logger.setLevel(logging.INFO)
 
+
+def combine_scores(l, *args):
+    scores = []
+    for i in range(0, l):
+        score = 1.0
+        for a in args:
+            score *= a[i]
+        scores.append(score)
+    return scores
+
+
+def distance(a, b):
+    return abs(a[0]-b[0]) + abs(a[1]-b[1])
+
+
+# Enum of levels
+class ENUM(set):
+    def __getattr__(self, name):
+        if name in self:
+            return name
+        raise AttributeError
+
+Level = ENUM(['Easy', 'Medium', 'Hard'])
+
+# position buffer
+class Buffer:
+    def __init__(self, _map, max_size=3):
+        self.buff=[]
+        self.max_size = max_size
+        self.map = _map
+
+    def scores(self, pos, dirs):
+        scores = []
+        for d in dirs:
+            n_pos = self.map.calc_pos(pos, d)
+            if n_pos == pos:
+                scores.append(0.0)
+            else:
+                if len(self.buff) == 0:
+                    scores.append(1.0)
+                else:
+                    m = max([x[1] for x in self.buff])
+                    op = [x for x in self.buff if x[0] == n_pos]
+                    if len(op) == 0:
+                        scores.append(1.0)
+                    else:
+                        scores.append(1.0-(op[0][1]/m))
+        return scores
+
+    def add(self, pos):
+        op = [x for x in self.buff if x[0] == pos]
+        if len(op) == 0:
+            self.buff.append((pos, 1))
+        else:
+            self.buff.remove(op[0])
+            self.buff.append((op[0][0], op[0][1]+1.0))
+
+        self.buff.sort(key=lambda x: x[1], reverse=True)
+        if len(self.buff) > self.max_size:
+            self.buff = self.buff[1:]
+
+
 class Ghost:
-    def __init__(self, mapa, buff_size=9, wait_max=10):
+    def __init__(self, mapa, level=0, wait_max=20):
         self.map = mapa
         self.respawn()
         self.direction = ""
-        self.buff_size = buff_size
-        self.buff_pos = []
+
+        if level <= 0:
+            self.level = Level.Easy
+            self.buffer = Buffer(mapa, 9)
+            self.visibility = 2
+        elif level >= 2:
+            self.level = Level.Hard
+            self.buffer = Buffer(mapa, 18)
+            self.visibility = 5
+        else:
+            self.level = Level.Medium
+            self.buffer = Buffer(mapa, 18)
+            self.visibility = 3
+
         self.wait = random.randint(0, wait_max)
         self.zombie_timeout = 0
 
@@ -57,43 +131,6 @@ class Ghost:
             dirs = ['d', 'w', 's', 'a']
         return dirs
 
-    def scores(self, g_pos, dirs):
-        score_d = [1.0, .5, .25, .125]
-        score_b = []
-
-        for d in dirs:
-            n_pos = self.map.calc_pos(g_pos, d)
-            if n_pos == g_pos:
-                # WALL
-                score_b.append(0.0)
-            else:
-                if len(self.buff_pos) == 0:
-                    score_b.append(1.0)
-                else:
-                    m = max([x[1] for x in self.buff_pos])
-                    op = [x for x in self.buff_pos if x[0] == n_pos]
-                    if len(op) == 0:
-                        score_b.append(1.0)
-                    else:
-                        score_b.append(1.0-(op[0][1]/m))
-                        #score_b.append(1.0/(op[0][1]+1))
-        logger.debug("GHOST SCBU = "+str(score_b))
-        return [x*y for x,y in zip(*([score_d, score_b]))]
-        #return [(x+y)/2.0 for x,y in zip(*([score_d, score_b]))]
-
-    def update_buffer(self, g_pos):
-        n_pos = self.map.calc_pos(g_pos, self.direction)
-        op = [x for x in self.buff_pos if x[0] == n_pos]
-        if len(op) == 0:
-            self.buff_pos.append((n_pos, 1))
-        else:
-            self.buff_pos.remove(op[0])
-            self.buff_pos.append((op[0][0], op[0][1]+1.0))
-
-        self.buff_pos.sort(key=lambda x: x[1], reverse=True)
-        if len(self.buff_pos) > self.buff_size:
-            self.buff_pos = self.buff_pos[1:]
-
     def reverse_directions(self, dirs):
         rv = []
         for x in dirs:
@@ -107,37 +144,63 @@ class Ghost:
                 rv.append('a')
         return rv
 
+    def ghost_scores(self, g_pos, dirs, lghosts):
+        score_g = [1.0, 1.0, 1.0, 1.0]
+
+        if len(lghosts) > 0:
+            for d in dirs:
+                n_pos = self.map.calc_pos(g_pos, d)
+                score_g.append(min([distance(x, n_pos) for x in lghosts]))
+            m = max(score_g)
+            if m > 0:
+                score_g = [x/m for x in score_g]
+
+        return score_g 
+
+    def scores(self, g_pos, dirs, lghosts):
+        scores_d = [1.0, .5, .25, .125]
+        scores_b = self.buffer.scores(g_pos, dirs)
+        scores_g = self.ghost_scores(g_pos, dirs, lghosts)
+        scores = combine_scores(4, scores_d, scores_b, scores_g)
+        logger.debug("GHOST SCORES = "+str(scores))
+        return scores
 
     def update(self, state):
         if self.zombie:
             self.zombie_timeout-=1
-
             #if zombie we move at HALF speed by skipping steps
             if state['step'] % 2 == 0:
                 return
-
         if self.wait > 0:
             self.wait -= 1
         else:
             if 'pacman' in state:
                 p_pos = state['pacman']
                 g_pos = (self.x, self.y)
+                # Search other ghosts
+                lghosts = [x[0] for x in state['ghosts']]
+                logger.debug("GHOST L_GST = "+str(lghosts))
+                if g_pos in lghosts: 
+                    lghosts.remove(g_pos)
                 # Find the right direction
                 dirs = self.directions(p_pos, g_pos)
                 if self.zombie:
-                    dirs = self.reverse_directions(dirs)
-                    logging.debug("GHOST RUN AWAY...")
+                    if self.level is Level.Easy:
+                        dirs = random.shuffle(['w', 's','a','d'])
+                    else:
+                        dirs = self.reverse_directions(dirs)
+                        logger.debug("GHOST RUN AWAY...")
                 logger.debug("GHOST DIRS = "+str(dirs))
                 # Compute the scores of each direction based on the buffer
-                scores = self.scores(g_pos, dirs)
+                scores = self.scores(g_pos, dirs, lghosts)
                 logger.debug("GHOST COSC = "+str(scores))
                 # Use the maximum score
                 idx = scores.index(max(scores))
                 self.direction = dirs[idx]
                 logger.debug("GHOST DIR  = "+self.direction)
                 # Update new position
-                self.update_buffer(g_pos)
-                logger.debug("GHOST BUFF = "+str(self.buff_pos))
+                self.buffer.add(g_pos)
+                logger.debug("GHOST BUFF = "+str(self.buffer))
                 self.x, self.y = self.map.calc_pos((self.x, self.y), self.direction)
     def __str__(self):
         return "({}, {})".format(self.x, self.y)
