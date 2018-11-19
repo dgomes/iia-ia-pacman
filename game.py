@@ -20,13 +20,6 @@ TIME_BONUS_STEPS = 5
 TIMEOUT = 3000 
 GAME_SPEED =10 
 MAX_HIGHSCORES = 10
-<<<<<<< HEAD
-<<<<<<< HEAD
-MAX_AWAIT_GHOST = 20
-=======
->>>>>>> Added levels to Ghost.
-=======
->>>>>>> ce5dab4607d98d46a2bf56f13889546146340964
 
 class Game:
     def __init__(self, mapfile, n_ghosts=GHOSTS, lives=LIVES, timeout=TIMEOUT):
@@ -37,16 +30,6 @@ class Game:
         self._n_ghosts = n_ghosts
         self._initial_lives = lives
         self.map = Map(mapfile)
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-        self.max_wait_ghost = max_wait_ghost
->>>>>>> Fixing ghost.
-=======
->>>>>>> Added levels to Ghost.
-=======
->>>>>>> ce5dab4607d98d46a2bf56f13889546146340964
         self._highscores = [] 
         if os.path.isfile(mapfile+".score"):
             with open(mapfile+".score", 'r') as infile:
