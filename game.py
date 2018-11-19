@@ -100,7 +100,12 @@ class Game:
         #update highscores
         logger.debug("Save highscores")
         self._highscores.append((self._player_name, self.score))
-        self._highscores = sorted(self._highscores, key=lambda s: -1*s[1])[:MAX_HIGHSCORES]
+        self._highscores = sorted(self._highscores, key=lambda s: -1*s[1])
+
+        names = list(map(lambda highscore : highscore[0], self._highscores))
+        
+        self._highscores = [(name, score) for i, (name, score) in enumerate(self._highscores)
+                                if name not in names[:i]][:MAX_HIGHSCORES]
     
         with open(self.map._filename+".score", 'w') as outfile:
             json.dump(self._highscores, outfile)
