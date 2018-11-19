@@ -83,7 +83,7 @@ class Ghost:
             self.visibility = 2
         elif level >= 2:
             self.level = Level.Hard
-            self.visibility = 5
+            self.visibility = 6
         else:
             self.level = Level.Medium
             self.visibility = 3
