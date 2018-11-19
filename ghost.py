@@ -67,28 +67,32 @@ class Buffer:
         if len(self.buff) > self.max_size:
             self.buff = self.buff[1:]
 
+    def __str__( self ):
+        return str(self.buff)
+
 
 class Ghost:
     def __init__(self, mapa, level=0, wait_max=20):
         self.map = mapa
         self.respawn()
         self.direction = ""
+        self.buffer = Buffer(mapa, 9)
 
         if level <= 0:
             self.level = Level.Easy
-            self.buffer = Buffer(mapa, 9)
             self.visibility = 2
         elif level >= 2:
             self.level = Level.Hard
-            self.buffer = Buffer(mapa, 18)
             self.visibility = 5
         else:
             self.level = Level.Medium
-            self.buffer = Buffer(mapa, 18)
             self.visibility = 3
 
         self.wait = random.randint(0, wait_max)
         self.zombie_timeout = 0
+
+        logger.info("Ghost Level      = "+str(self.level))
+        logger.info("Ghost Visibility = "+str(self.visibility))
 
     def respawn(self):
         x, y = self.map._ghost_spawn
@@ -109,26 +113,34 @@ class Ghost:
         return self.x, self.y
 
     def directions(self, p_pos, g_pos):
-        theta = round(math.degrees(math.atan2((p_pos[1] - g_pos[1]),
-            (p_pos[0] - g_pos[0]))))
-        if theta >= 45 and theta < 135:
-            if theta <= 90:
-                dirs = ['s','d','a','w']
-            else:
-                dirs = ['s','a','d','w']
-        elif theta >= -135 and theta < -45:
-            if theta >= -90:
-                dirs = ['w', 'd', 'a', 's']
-            else:
-                dirs = ['w', 'a', 'd', 's']
-        elif theta > 135:
-            dirs = ['a', 's', 'w', 'd']
-        elif theta < -135:
-            dirs = ['a', 'w', 's', 'd']
-        elif theta < 45:
-            dirs = ['d', 's', 'w', 'a']
+        dirs = ['w', 's','a','d']
+        # random run away
+        if distance(p_pos, g_pos) > self.visibility or (self.zombie and self.level is Level.Easy):
+            random.shuffle(dirs)
         else:
-            dirs = ['d', 'w', 's', 'a']
+            theta = round(math.degrees(math.atan2((p_pos[1] - g_pos[1]), (p_pos[0] - g_pos[0]))))
+            if theta >= 45 and theta < 135:
+                if theta <= 90:
+                    dirs = ['s','d','a','w']
+                else:
+                    dirs = ['s','a','d','w']
+            elif theta >= -135 and theta < -45:
+                if theta >= -90:
+                    dirs = ['w', 'd', 'a', 's']
+                else:
+                    dirs = ['w', 'a', 'd', 's']
+            elif theta > 135:
+                dirs = ['a', 's', 'w', 'd']
+            elif theta < -135:
+                dirs = ['a', 'w', 's', 'd']
+            elif theta < 45:
+                dirs = ['d', 's', 'w', 'a']
+            else:
+                dirs = ['d', 'w', 's', 'a']
+
+            if self.zombie:
+                dirs = self.reverse_directions(dirs)
+                
         return dirs
 
     def reverse_directions(self, dirs):
@@ -153,15 +165,23 @@ class Ghost:
                 score_g.append(min([distance(x, n_pos) for x in lghosts]))
             m = max(score_g)
             if m > 0:
-                score_g = [x/m for x in score_g]
-
+                if self.level is Level.Hard:
+                    score_g = [2.0 * (x/m) for x in score_g]
+                else:
+                    score_g = [x/m for x in score_g]
         return score_g 
 
     def scores(self, g_pos, dirs, lghosts):
         scores_d = [1.0, .5, .25, .125]
         scores_b = self.buffer.scores(g_pos, dirs)
         scores_g = self.ghost_scores(g_pos, dirs, lghosts)
-        scores = combine_scores(4, scores_d, scores_b, scores_g)
+        
+        scores = []
+        if self.zombie and self.level is Level.Easy:
+            scores = combine_scores(4, scores_d, scores_g)
+        else:
+            scores = combine_scores(4, scores_d, scores_b, scores_g)
+
         logger.debug("GHOST SCORES = "+str(scores))
         return scores
 
@@ -177,19 +197,11 @@ class Ghost:
             if 'pacman' in state:
                 p_pos = state['pacman']
                 g_pos = (self.x, self.y)
-                # Search other ghosts
-                lghosts = [x[0] for x in state['ghosts']]
+                # Find the other ghosts
+                lghosts = [x[0] for x in state['ghosts'] if x[0] != g_pos]
                 logger.debug("GHOST L_GST = "+str(lghosts))
-                if g_pos in lghosts: 
-                    lghosts.remove(g_pos)
                 # Find the right direction
                 dirs = self.directions(p_pos, g_pos)
-                if self.zombie:
-                    if self.level is Level.Easy:
-                        dirs = random.shuffle(['w', 's','a','d'])
-                    else:
-                        dirs = self.reverse_directions(dirs)
-                        logger.debug("GHOST RUN AWAY...")
                 logger.debug("GHOST DIRS = "+str(dirs))
                 # Compute the scores of each direction based on the buffer
                 scores = self.scores(g_pos, dirs, lghosts)
