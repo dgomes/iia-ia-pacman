@@ -67,6 +67,8 @@ class Map:
     def is_wall(self, pos):
         x, y = pos
     #    logging.debug("{} {:x}".format(pos, self.pxarray[x][y] ))
+        if x not in range(self.hor_tiles) or y not in range(self.ver_tiles):
+            return True
         if self.pxarray[x][y] == WALL:
             return True
         return False
