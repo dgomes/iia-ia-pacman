@@ -213,6 +213,7 @@ class Ghost:
                 self.buffer.add(g_pos)
                 logger.debug("GHOST BUFF = "+str(self.buffer))
                 self.x, self.y = self.map.calc_pos((self.x, self.y), self.direction)
+    
     def __str__(self):
         return "({}, {})".format(self.x, self.y)
 
