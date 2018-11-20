@@ -1,10 +1,33 @@
 import random
 import math
 import logging
+from enum import Enum
 from mapa import Map
 
+"""
+Ghost with multiple levels of digiculty:
+    Level 0 (Easy):
+     - Visibility of 2
+     - When in Zombie runs away in a random direction
+     - Ignores Memory (Buffer) when running away
+
+    Level 1 (Medium):
+     - Visibility of 3 (capable of maintaining chase even when the pacman changes direction)
+     - Runs away in the oposite direction of the pacman
+     - Maintains Memory of the previous positions
+
+    Level 2 (Hard):
+     - Visibility of 6 (twice the medium)
+     - Runs away in the oposite direction of the pacman
+     - Maintains memory of the previous positions
+     - Gives priority to spreading (go away from other ghosts)
+"""
+__author__ = "Mário Antunes"
+__version__ = "2.0"
+__email__ = "mario.antunes@ua.pt"
+
 logger = logging.getLogger('Ghost')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 def combine_scores(l, *args):
@@ -22,13 +45,10 @@ def distance(a, b):
 
 
 # Enum of levels
-class ENUM(set):
-    def __getattr__(self, name):
-        if name in self:
-            return name
-        raise AttributeError
-
-Level = ENUM(['Easy', 'Medium', 'Hard'])
+class Level(Enum):
+    Easy = 0
+    Medium = 1
+    Hard = 2
 
 # position buffer
 class Buffer:
@@ -80,18 +100,18 @@ class Ghost:
         if level <= 0:
             self.level = Level.Easy
             self.visibility = 2
-        elif level >= 2:
-            self.level = Level.Hard
-            self.visibility = 6
-        else:
+        elif level == 1:
             self.level = Level.Medium
             self.visibility = 3
+        else:
+            self.level = Level.Hard
+            self.visibility = 6
 
         self.wait = random.randint(0, wait_max)
         self.zombie_timeout = 0
 
-        logger.info("Ghost Level      = "+str(self.level))
-        logger.info("Ghost Visibility = "+str(self.visibility))
+        logger.info("Ghost Level = %s ", self.level)
+        logger.info("Ghost Visibility = %s", self.visibility)
 
     def respawn(self):
         x, y = self.map._ghost_spawn
@@ -181,7 +201,7 @@ class Ghost:
         else:
             scores = combine_scores(4, scores_d, scores_b, scores_g)
 
-        logger.debug("GHOST SCORES = "+str(scores))
+        logger.debug("GHOST SCORES = %s", scores)
         return scores
     
     def update(self, state):
@@ -198,20 +218,19 @@ class Ghost:
                 g_pos = (self.x, self.y)
                 # Find the other ghosts
                 lghosts = [x[0] for x in state['ghosts'] if x[0] != g_pos]
-                logger.debug("GHOST L_GST = "+str(lghosts))
+                logger.debug("GHOST L_GST = %s", lghosts)
                 # Find the right direction
                 dirs = self.directions(p_pos, g_pos)
                 logger.debug("GHOST DIRS = "+str(dirs))
                 # Compute the scores of each direction based on the buffer
                 scores = self.scores(g_pos, dirs, lghosts)
-                logger.debug("GHOST COSC = "+str(scores))
                 # Use the maximum score
                 idx = scores.index(max(scores))
                 self.direction = dirs[idx]
-                logger.debug("GHOST DIRS  = "+self.direction)
+                logger.debug("GHOST DIRS  = %s", self.direction)
                 # Update new position
                 self.buffer.add(g_pos)
-                logger.debug("GHOST BUFF = "+str(self.buffer))
+                logger.debug("GHOST BUFF = %s", self.buffer)
                 self.x, self.y = self.map.calc_pos((self.x, self.y), self.direction)
     
     def __str__(self):
