@@ -10,12 +10,12 @@ PACMAN = 0xffd4fdd5
 GHOST = 0xff00f900
 
 if platform.system() == "Windows":
-    MASK = 0x100000000
-    WALL = WALL - MASK
-    ENERGY = ENERGY - MASK
-    BOOST = BOOST - MASK
-    PACMAN = PACMAN - MASK
-    GHOST = GHOST - MASK
+    MASK = 0xFFFFFFFF
+    WALL = ~(WALL ^ MASK)
+    ENERGY = ~(ENERGY ^ MASK)
+    BOOST = ~(BOOST ^ MASK)
+    PACMAN = ~(PACMAN ^ MASK)
+    GHOST = ~(GHOST ^ MASK)
 
 class Tiles(Enum):
     ENERGY = 1
