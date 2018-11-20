@@ -1,23 +1,17 @@
-import random
-import math
-import logging
-from enum import Enum
-from mapa import Map
-
 """
 Ghost with multiple levels of digiculty:
     Level 0 (Easy):
-     - Visibility of 2
+     - Visibility of 2 (twice when running away)
      - When in Zombie runs away in a random direction
      - Ignores Memory (Buffer) when running away
 
     Level 1 (Medium):
-     - Visibility of 3 (capable of maintaining chase even when the pacman changes direction)
+     - Visibility of 4 (capable of maintaining chase even when the pacman changes direction)
      - Runs away in the oposite direction of the pacman
      - Maintains Memory of the previous positions
 
     Level 2 (Hard):
-     - Visibility of 6 (twice the medium)
+     - Visibility of 8 (twice the medium)
      - Runs away in the oposite direction of the pacman
      - Maintains memory of the previous positions
      - Gives priority to spreading (go away from other ghosts)
@@ -25,6 +19,12 @@ Ghost with multiple levels of digiculty:
 __author__ = "Mário Antunes"
 __version__ = "2.0"
 __email__ = "mario.antunes@ua.pt"
+
+import random
+import math
+import logging
+from enum import Enum
+from mapa import Map
 
 logger = logging.getLogger('Ghost')
 logger.setLevel(logging.INFO)
@@ -91,7 +91,7 @@ class Buffer:
         return str(self.buff)
 
 class Ghost:
-    def __init__(self, mapa, level=0, wait_max=20):
+    def __init__(self, mapa, level=3, wait_max=20):
         self.map = mapa
         self.respawn()
         self.direction = ""
@@ -102,10 +102,10 @@ class Ghost:
             self.visibility = 2
         elif level == 1:
             self.level = Level.Medium
-            self.visibility = 3
+            self.visibility = 4
         else:
             self.level = Level.Hard
-            self.visibility = 6
+            self.visibility = 8
 
         self.wait = random.randint(0, wait_max)
         self.zombie_timeout = 0
@@ -133,34 +133,34 @@ class Ghost:
 
     def directions(self, p_pos, g_pos):
         dirs = ['w', 's','a','d']
-        # random run away
-        if distance(p_pos, g_pos) > self.visibility or (self.zombie and self.level is Level.Easy):
-            random.shuffle(dirs)
+
+        visibility = 2*self.visibility if self.zombie else self.visibility
+
+        if (not self.zombie and distance(p_pos, g_pos) > visibility) or (self.zombie and self.level is Level.Easy) or (self.zombie and distance(p_pos, g_pos) > visibility):
+            theta = random.choice([0, 45, 90, 135, 180, -45, -90, -135, -180])
         else:
             theta = round(math.degrees(math.atan2((p_pos[1] - g_pos[1]), (p_pos[0] - g_pos[0]))))
-            if theta >= 45 and theta < 135:
-                if theta <= 90:
-                    dirs = ['s','d','a','w']
-                else:
-                    dirs = ['s','a','d','w']
-            elif theta >= -135 and theta < -45:
-                if theta >= -90:
-                    dirs = ['w', 'd', 'a', 's']
-                else:
-                    dirs = ['w', 'a', 'd', 's']
-            elif theta > 135:
-                dirs = ['a', 's', 'w', 'd']
-            elif theta < -135:
-                dirs = ['a', 'w', 's', 'd']
-            elif theta < 45:
-                dirs = ['d', 's', 'w', 'a']
+        
+        if theta >= 45 and theta < 135:
+            if theta <= 90:
+                dirs = ['s','d','a','w']
             else:
-                dirs = ['d', 'w', 's', 'a']
+                dirs = ['s','a','d','w']
+        elif theta >= -135 and theta < -45:
+            if theta >= -90:
+                dirs = ['w', 'd', 'a', 's']
+            else:
+                dirs = ['w', 'a', 'd', 's']
+        elif theta > 135:
+            dirs = ['a', 's', 'w', 'd']
+        elif theta < -135:
+            dirs = ['a', 'w', 's', 'd']
+        elif theta < 45:
+            dirs = ['d', 's', 'w', 'a']
+        else:
+            dirs = ['d', 'w', 's', 'a']
                 
-            if self.zombie:
-                dirs = self.reverse_directions(dirs)
-                
-        return dirs
+        return self.reverse_directions(dirs) if self.zombie else dirs
 
     def reverse_directions(self, dirs):
         rv = []
@@ -221,7 +221,7 @@ class Ghost:
                 logger.debug("GHOST L_GST = %s", lghosts)
                 # Find the right direction
                 dirs = self.directions(p_pos, g_pos)
-                logger.debug("GHOST DIRS = "+str(dirs))
+                logger.debug("GHOST DIRS = %s", dirs)
                 # Compute the scores of each direction based on the buffer
                 scores = self.scores(g_pos, dirs, lghosts)
                 # Use the maximum score
