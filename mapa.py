@@ -1,13 +1,21 @@
 import pygame
 import logging
 from enum import Enum
-
+import platform
 
 WALL = 0xff000000
 ENERGY = 0xffffd7d6
 BOOST = 0xffff2600
 PACMAN = 0xffd4fdd5
 GHOST = 0xff00f900
+
+if platform.system() == "Windows":
+    MASK = 0x100000000
+    WALL = WALL - MASK
+    ENERGY = ENERGY - MASK
+    BOOST = BOOST - MASK
+    PACMAN = PACMAN - MASK
+    GHOST = GHOST - MASK
 
 class Tiles(Enum):
     ENERGY = 1
