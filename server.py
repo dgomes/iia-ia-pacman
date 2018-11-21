@@ -12,13 +12,13 @@ wslogger = logging.getLogger('websockets')
 wslogger.setLevel(logging.WARN)
 
 logger = logging.getLogger('Server')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 Player = namedtuple('Player', ['name', 'ws']) 
 
 class Game_server:
-    def __init__(self, mapfile, ghosts, lives, timeout):
-        self.game = Game(mapfile, ghosts, lives, timeout) 
+    def __init__(self, mapfile, ghosts, level_ghosts, lives, timeout):
+        self.game = Game(mapfile, ghosts, level_ghosts, lives, timeout) 
         self.players = asyncio.Queue()
         self.viewers = set()
         self.current_player = None 
@@ -32,7 +32,7 @@ class Game_server:
                     await websocket.send(map_info)
                     
                     if path == "/player":
-                        print("New player")
+                        logger.info("<%s> has joined", data["name"])
                         await self.players.put(Player(data["name"], websocket))
 
                     if path == "/viewer":
@@ -80,12 +80,13 @@ if __name__ == "__main__":
     parser.add_argument("--bind", help="IP address to bind to", default="")
     parser.add_argument("--port", help="TCP port", type=int, default=8000)
     parser.add_argument("--ghosts", help="Number of ghosts", type=int, default=1)
+    parser.add_argument("--level", help="difficulty level of ghosts", choices=[0,1,2], default=1)
     parser.add_argument("--lives", help="Number of lives", type=int, default=3)
     parser.add_argument("--timeout", help="Timeout after this amount of steps", type=int, default=3000)
     parser.add_argument("--map", help="path to the map bmp", default="data/map1.bmp")
     args = parser.parse_args()
 
-    g = Game_server(args.map, args.ghosts, args.lives, args.timeout)
+    g = Game_server(args.map, args.ghosts, args.level, args.lives, args.timeout)
 
     game_loop_task = asyncio.ensure_future(g.mainloop())
 

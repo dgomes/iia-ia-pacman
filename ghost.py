@@ -91,7 +91,7 @@ class Buffer:
         return str(self.buff)
 
 class Ghost:
-    def __init__(self, mapa, level=3, wait_max=20):
+    def __init__(self, mapa, level=1, wait_max=20):
         self.map = mapa
         self.respawn()
         self.direction = ""

@@ -23,12 +23,13 @@ MAX_HIGHSCORES = 10
 
 
 class Game:
-    def __init__(self, mapfile, n_ghosts=GHOSTS, lives=LIVES, timeout=TIMEOUT):
+    def __init__(self, mapfile, n_ghosts=GHOSTS, l_ghosts=1, lives=LIVES, timeout=TIMEOUT):
         logger.info("Game({}, {}, {})".format(mapfile, n_ghosts, lives))
         self._running = False
         self._timeout = timeout
         self._state = {}
         self._n_ghosts = n_ghosts
+        self._l_ghosts = l_ghosts
         self._initial_lives = lives
         self.map = Map(mapfile)
         
@@ -79,7 +80,7 @@ class Game:
         
         self.map = Map(self.map.filename)
         self._step = 0
-        self._ghosts = [Ghost(self.map) for g in range(0,self._n_ghosts)]
+        self._ghosts = [Ghost(self.map, level=self._l_ghosts) for g in range(0,self._n_ghosts)]
         self._pacman = self.map.pacman_spawn
         self._energy = self.map.energy
         self._boost = self.map.boost
