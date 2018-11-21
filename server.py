@@ -80,13 +80,13 @@ if __name__ == "__main__":
     parser.add_argument("--bind", help="IP address to bind to", default="")
     parser.add_argument("--port", help="TCP port", type=int, default=8000)
     parser.add_argument("--ghosts", help="Number of ghosts", type=int, default=1)
-    parser.add_argument("--level", help="difficulty level of ghosts", choices=[0,1,2], default=1)
+    parser.add_argument("--level", help="difficulty level of ghosts", choices=['0','1','2'], default='1')
     parser.add_argument("--lives", help="Number of lives", type=int, default=3)
     parser.add_argument("--timeout", help="Timeout after this amount of steps", type=int, default=3000)
     parser.add_argument("--map", help="path to the map bmp", default="data/map1.bmp")
     args = parser.parse_args()
 
-    g = Game_server(args.map, args.ghosts, args.level, args.lives, args.timeout)
+    g = Game_server(args.map, args.ghosts, int(args.level), args.lives, args.timeout)
 
     game_loop_task = asyncio.ensure_future(g.mainloop())
 
