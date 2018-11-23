@@ -41,6 +41,7 @@ class Game:
     def info(self):
         return json.dumps({"map": self.map.filename,
                            "ghosts": self._n_ghosts,
+                           "ghosts_level": self._l_ghosts,
                            "fps": GAME_SPEED,
                            "timeout": TIMEOUT,
                            "lives": LIVES,
