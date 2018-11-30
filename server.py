@@ -1,3 +1,4 @@
+import requests
 import argparse
 import asyncio
 import json
@@ -17,11 +18,15 @@ logger.setLevel(logging.INFO)
 Player = namedtuple('Player', ['name', 'ws']) 
 
 class Game_server:
-    def __init__(self, mapfile, ghosts, level_ghosts, lives, timeout):
-        self.game = Game(mapfile, ghosts, level_ghosts, lives, timeout) 
+    def __init__(self, mapfile, ghosts, level_ghosts, lives, timeout, grading=None):
+        self.game = Game(mapfile, ghosts, level_ghosts, lives, timeout)
+        self.game_properties = {'map': mapfile,
+                                'n_ghosts': ghosts,
+                                'l_ghosts': level_ghosts}
         self.players = asyncio.Queue()
         self.viewers = set()
         self.current_player = None 
+        self.grading = grading
 
     async def incomming_handler(self, websocket, path):
         try:
@@ -66,6 +71,12 @@ class Game_server:
                     if self.viewers:
                         await asyncio.wait([client.send(self.game.state) for client in self.viewers])
                 await self.current_player.ws.send(json.dumps({"score": self.game.score}))
+                if self.grading:
+                    game_rec = dict(self.game_properties)
+                    game_rec['player'] = self.current_player.name
+                    game_rec['score'] = self.game.score
+                    
+                    r = requests.post(self.grading, json=game_rec) 
 
                 logger.info("Disconnecting <{}>".format(self.current_player.name))
             except websockets.exceptions.ConnectionClosed as c:
@@ -84,9 +95,10 @@ if __name__ == "__main__":
     parser.add_argument("--lives", help="Number of lives", type=int, default=3)
     parser.add_argument("--timeout", help="Timeout after this amount of steps", type=int, default=3000)
     parser.add_argument("--map", help="path to the map bmp", default="data/map1.bmp")
+    parser.add_argument("--grading-server", help="url of grading server", default=None)
     args = parser.parse_args()
 
-    g = Game_server(args.map, args.ghosts, int(args.level), args.lives, args.timeout)
+    g = Game_server(args.map, args.ghosts, int(args.level), args.lives, args.timeout, args.grading_server)
 
     game_loop_task = asyncio.ensure_future(g.mainloop())
 
