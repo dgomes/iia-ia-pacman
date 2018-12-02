@@ -64,6 +64,9 @@ class Game_server:
             try:
                 logger.info("Starting game for <{}>".format(self.current_player.name))
                 self.game.start(self.current_player.name)
+                if self.grading:
+                    game_rec = dict(self.game_properties)
+                    game_rec['player'] = self.current_player.name
             
                 while self.game.running:
                     await self.game.next_frame()
@@ -71,17 +74,14 @@ class Game_server:
                     if self.viewers:
                         await asyncio.wait([client.send(self.game.state) for client in self.viewers])
                 await self.current_player.ws.send(json.dumps({"score": self.game.score}))
-                if self.grading:
-                    game_rec = dict(self.game_properties)
-                    game_rec['player'] = self.current_player.name
-                    game_rec['score'] = self.game.score
-                    
-                    r = requests.post(self.grading, json=game_rec) 
 
                 logger.info("Disconnecting <{}>".format(self.current_player.name))
             except websockets.exceptions.ConnectionClosed as c:
                 self.current_player = None
             finally:
+                if self.grading:
+                   game_rec['score'] = self.game.score
+                   r = requests.post(self.grading, json=game_rec)
                 if self.current_player:
                     await self.current_player.ws.close()
 

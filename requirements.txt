@@ -1,3 +1,4 @@
+requests
 pygame==1.9.4
 aiohttp==3.4.4
 async-timeout==3.0.0
