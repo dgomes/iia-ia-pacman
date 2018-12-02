@@ -194,7 +194,7 @@ async def main_loop(q):
         if "score" in state:
             text = str(state["score"])
             draw_info(SCREEN, text.zfill(6), (0,0))
-            text = str(state["player"]).rjust(24)
+            text = str(state["player"]).rjust(32)
             draw_info(SCREEN, text, (4000,0))
         if "energy" in state:
             for x, y in state["energy"]:
