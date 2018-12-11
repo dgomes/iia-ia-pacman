@@ -25,7 +25,6 @@ import math
 import logging
 from enum import Enum
 from mapa import Map
-from threading import Lock
 
 logger = logging.getLogger('Ghost')
 logger.setLevel(logging.INFO)
@@ -70,9 +69,10 @@ class Level(Enum):
     Easy = 0
     Medium = 1
     Hard = 2
+    Ultra = 3
 
 class Buffer:
-    def __init__(self, _map, max_size=8):
+    def __init__(self, _map, max_size=32):
         self.buff=[]
         self.max_size = max_size
         self.map = _map
@@ -124,6 +124,7 @@ class Ghost:
         self.direction = ""
         self.respawn_dist = respawn_dist
         self.buffer = Buffer(mapa)
+        self.plan = []
 
         if level <= 0:
             self.level = Level.Easy
@@ -159,12 +160,14 @@ class Ghost:
     def pos(self):
         return self.x, self.y
 
+    def visible(self, g_pos, p_pos):
+        visibility = 2*self.visibility if self.zombie else self.visibility
+        return distance(p_pos, g_pos) <= visibility
+
     def directions(self, p_pos, g_pos):
         dirs = ['w', 's','a','d']
 
-        visibility = 2*self.visibility if self.zombie else self.visibility
-
-        if (not self.zombie and distance(p_pos, g_pos) > visibility) or (self.zombie and self.level is Level.Easy) or (self.zombie and distance(p_pos, g_pos) > visibility):
+        if (not self.zombie and not self.visible(g_pos, p_pos)) or (self.zombie and self.level is Level.Easy) or (self.zombie and not self.visible(g_pos, p_pos)):
             theta = random.choice([0, 45, 90, 135, 180, -45, -90, -135, -180])
         else:
             theta = round(math.degrees(math.atan2((p_pos[1] - g_pos[1]), (p_pos[0] - g_pos[0]))))
@@ -238,10 +241,9 @@ class Ghost:
                 scores[i] = 0.0
         return scores
                 
-    def scores(self, g_pos, dirs, lghosts):
+    def scores(self, g_pos, p_pos, dirs, lghosts):
         logger.debug("PACMAN DIRS = %s", dirs)
         scores_d = [1.0, .75, .5, .25]
-        
         scores_g = self.ghost_scores(g_pos, dirs, lghosts)
         logger.debug("GHOST SCORES = %s", scores_g)
         
@@ -273,17 +275,17 @@ class Ghost:
                 lghosts = [x[0] for x in state['ghosts'] if x[0] != g_pos]
                 logger.debug("GHOST L_GST = %s", lghosts)
                 
-                
                 if distance(g_pos, self.map.ghost_spawn) <= self.respawn_dist and distance(p_pos, self.map.ghost_spawn) > self.respawn_dist:
                     logger.debug("Ghost State = Close to respawn")
-                    actlist = self.find_exit(g_pos, [], [])
-                    self.direction = actlist[0]
+                    if len(self.plan) == 0:
+                        self.plan = self.find_exit(g_pos, [], [])
+                    self.direction = self.plan.pop(0)
                 else:
                     logger.debug("Ghost State = Track")
                     # Find the right direction
                     dirs = self.directions(p_pos, g_pos)
                     # Compute the scores of each direction based on the buffer
-                    scores = self.scores(g_pos, dirs, lghosts)
+                    scores = self.scores(g_pos, p_pos, dirs, lghosts)
                     # Use the maximum score
                     idx = scores.index(max(scores))
                     self.direction = dirs[idx]
