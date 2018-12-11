@@ -1,17 +1,17 @@
 """
 Ghost with multiple levels of difficulty:
     Level 0 (Easy):
-     - Visibility of 2 (twice when running away)
+     - Visibility of 8 (twice when running away)
      - When in Zombie runs away in a random direction
      - Ignores Memory (Buffer) when running away
 
     Level 1 (Medium):
-     - Visibility of 4 (capable of maintaining chase even when the pacman changes direction)
+     - Visibility of 16 (capable of maintaining chase even when the pacman changes direction)
      - Runs away in the opposite direction of the pacman
      - Maintains Memory of the previous positions
 
     Level 2 (Hard):
-     - Visibility of 8 (twice the medium)
+     - Visibility of 32 (twice the medium)
      - Runs away in the opposite direction of the pacman
      - Maintains memory of the previous positions
      - Gives priority to spreading (go away from other ghosts)
@@ -28,7 +28,7 @@ from mapa import Map
 from threading import Lock
 
 logger = logging.getLogger('Ghost')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 def scaling(scores, a=0.01, b=1.0):
@@ -274,7 +274,7 @@ class Ghost:
                 logger.debug("GHOST L_GST = %s", lghosts)
                 
                 
-                if distance(g_pos, self.map.ghost_spawn) <= self.respawn_dist:
+                if distance(g_pos, self.map.ghost_spawn) <= self.respawn_dist and distance(p_pos, self.map.ghost_spawn) > self.respawn_dist:
                     logger.debug("Ghost State = Close to respawn")
                     actlist = self.find_exit(g_pos, [], [])
                     self.direction = actlist[0]
