@@ -1,17 +1,17 @@
 """
 Ghost with multiple levels of difficulty:
     Level 0 (Easy):
-     - Visibility of 8 (twice when running away)
+     - Visibility of 4 (twice when running away)
      - When in Zombie runs away in a random direction
      - Ignores Memory (Buffer) when running away
 
     Level 1 (Medium):
-     - Visibility of 16 (capable of maintaining chase even when the pacman changes direction)
+     - Visibility of 8 (capable of maintaining chase even when the pacman changes direction)
      - Runs away in the opposite direction of the pacman
      - Maintains Memory of the previous positions
 
     Level 2 (Hard):
-     - Visibility of 32 (twice the medium)
+     - Visibility of 16 (twice the medium)
      - Runs away in the opposite direction of the pacman
      - Maintains memory of the previous positions
      - Gives priority to spreading (go away from other ghosts)
@@ -103,13 +103,13 @@ class Ghost:
 
         if level <= 0:
             self.level = Level.Easy
-            self.visibility = 8
+            self.visibility = 4
         elif level == 1:
             self.level = Level.Medium
-            self.visibility = 16
+            self.visibility = 8
         else:
             self.level = Level.Hard
-            self.visibility = 32
+            self.visibility = 16
 
         self.wait = id
         self.zombie_timeout = 0
