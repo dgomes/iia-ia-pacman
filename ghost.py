@@ -72,44 +72,17 @@ class Level(Enum):
     Ultra = 3
 
 class Buffer:
-    def __init__(self, _map, max_size=32):
-        self.buff=[]
+    def __init__(self, max_size=8):
+        self.buff = []
         self.max_size = max_size
-        self.map = _map
         
-    def scores(self, pos, dirs):
-        scores = [1.0, 1.0, 1.0, 1.0]
-
-        if len(self.buff) > 0:
-            distances = [0, 0, 0, 0]
-            for i in range(len(dirs)):
-                npos = self.map.calc_pos(pos, dirs[i])
-                if npos == pos:
-                    scores[i] = 0.0
-                else:
-                    value = [x[1] for x in self.buff if x[0] == npos]
-                    if len(value) > 0:
-                        distances[i] = value[0]
-            distances = distance_2_score(distances)
-            for i in range(len(dirs)):
-                if scores[i] > 0.0:
-                    scores[i] = distances[i]
-        else:
-            for i in range(len(dirs)):
-                npos = self.map.calc_pos(pos, dirs[i])
-                if npos == pos:
-                    scores[i] = 0.0
-        return scores
+    def valid(self, pos):
+        return len([x for x in self.buff if x == pos]) == 0
 
     def add(self, pos):
-        op = [x for x in self.buff if x[0] == pos]
-        if len(op) == 0:
-            self.buff.append((pos, 1))
-        else:
-            self.buff.remove(op[0])
-            self.buff.append((op[0][0], op[0][1]+1.0))
+        if self.valid(pos):
+            self.buff += [pos]
 
-        self.buff.sort(key=lambda x: x[1], reverse=True)
         if len(self.buff) > self.max_size:
             self.buff = self.buff[1:]
 
@@ -118,13 +91,15 @@ class Buffer:
 
 
 class Ghost:
-    def __init__(self, mapa, level=1, wait_max=20, respawn_dist=3):
+    def __init__(self, id, mapa, level=1, respawn_dist=3):
         self.map = mapa
         self.respawn()
         self.direction = ""
         self.respawn_dist = respawn_dist
-        self.buffer = Buffer(mapa)
+        self.buffer = Buffer()
         self.plan = []
+        self.visited = []
+        self.identity = id
 
         if level <= 0:
             self.level = Level.Easy
@@ -136,7 +111,7 @@ class Ghost:
             self.level = Level.Hard
             self.visibility = 32
 
-        self.wait = random.randint(0, wait_max)
+        self.wait = id
         self.zombie_timeout = 0
 
         logger.info("Ghost Level = %s ", self.level)
@@ -166,11 +141,8 @@ class Ghost:
 
     def directions(self, p_pos, g_pos):
         dirs = ['w', 's','a','d']
-
-        if (not self.zombie and not self.visible(g_pos, p_pos)) or (self.zombie and self.level is Level.Easy) or (self.zombie and not self.visible(g_pos, p_pos)):
-            theta = random.choice([0, 45, 90, 135, 180, -45, -90, -135, -180])
-        else:
-            theta = round(math.degrees(math.atan2((p_pos[1] - g_pos[1]), (p_pos[0] - g_pos[0]))))
+        
+        theta = round(math.degrees(math.atan2((p_pos[1] - g_pos[1]), (p_pos[0] - g_pos[0]))))
         
         if theta >= 45 and theta < 135:
             if theta <= 90:
@@ -191,9 +163,10 @@ class Ghost:
         else:
             dirs = ['d', 'w', 's', 'a']
                 
-        return self.reverse_directions(dirs) if self.zombie else dirs
+        return dirs
 
-    def reverse_directions(self, dirs):
+    def reverse_directions(self, p_pos, g_pos):
+        dirs = self.directions(p_pos, g_pos)
         rv = []
         for x in dirs:
             if x == 'w':
@@ -206,16 +179,6 @@ class Ghost:
                 rv.append('a')
         return rv
 
-    def ghost_scores(self, g_pos, dirs, lghosts):
-        score_g = [1.0, 1.0, 1.0, 1.0]
-        if len(lghosts) > 1:
-            distance_ghosts = []
-            for d in dirs:
-                n_pos = self.map.calc_pos(g_pos, d)
-                distance_ghosts.append(min([distance(x, n_pos) for x in lghosts]))
-            score_g = scaling(distance_ghosts)
-        return score_g
-
     def find_exit(self, pos, actlist, visited):
         dirs = ['w', 's', 'a', 'd']
         dist = distance(pos, self.map.ghost_spawn)
@@ -226,38 +189,51 @@ class Ghost:
             random.shuffle(dirs)
             visited += [pos]
             for d in dirs:
-                npos = npos = self.map.calc_pos(pos, d)
+                npos = self.map.calc_pos(pos, d)
                 if npos != pos and not npos in visited:
                     rv = self.find_exit(npos, actlist + [d], visited)
                     if rv is not None:
                         return rv
             return None
 
-    def wall_scores(self, g_pos, dirs):
-        scores = [1.0, 1.0, 1.0, 1.0]
-        for i in range(len(dirs)):
-            npos = self.map.calc_pos(g_pos, dirs[i])
-            if npos == g_pos:
-                scores[i] = 0.0
-        return scores
-                
-    def scores(self, g_pos, p_pos, dirs, lghosts):
-        logger.debug("PACMAN DIRS = %s", dirs)
-        scores_d = [1.0, .75, .5, .25]
-        scores_g = self.ghost_scores(g_pos, dirs, lghosts)
-        logger.debug("GHOST SCORES = %s", scores_g)
-        
-        if self.zombie:
-            scores_w = self.wall_scores(g_pos, dirs)
-            logger.debug("WALL SCORES = %s", scores_w)
-            scores = combine_scores(4, scores_d, scores_w)
-        else:
-            scores_b = self.buffer.scores(g_pos, dirs)
-            logger.debug("BUFFER SCORES = %s", scores_b)
-            scores = combine_scores(4, scores_d, scores_b, scores_g)
+    def find_path(self, pos, target, lghosts, depth, max_depth, actlist, visited):
+        dirs = self.directions(target, pos)
+        visited += [pos]
 
-        logger.debug("FINAL SCORES = %s", scores)
-        return scores
+        if pos == target:
+            return actlist, visited
+        elif depth >= max_depth:
+            return [], []
+        else:
+            for d in dirs:
+                npos = self.map.calc_pos(pos, d)
+                if npos != pos and not npos in visited and npos not in lghosts:
+                    ra, rv = self.find_path(npos, target, lghosts, depth+1, max_depth, actlist + [d], visited)
+                    if len(ra) > 0:
+                        return ra, rv
+            return [], []
+
+    def random_valid_direction(self, pos, lghosts):
+        direction = self.direction
+        npos = self.map.calc_pos(pos, direction)
+        if npos != pos and npos not in lghosts:
+            return direction
+        else:
+            dirs = ['w', 's', 'a', 'd']
+            random.shuffle(dirs)
+            for d in dirs:
+                npos = self.map.calc_pos(pos, d)
+                if npos != pos and npos not in lghosts:
+                    return d
+            return dirs[0]
+
+    def reverse_valid_direction(self, g_pos, p_pos, lghosts):
+        dirs = self.reverse_directions(p_pos, g_pos)
+        for d in dirs:
+            npos = self.map.calc_pos(g_pos, d)
+            if npos != g_pos and npos not in lghosts:
+                return d
+        return dirs[0]  
     
     def update(self, state):
         if self.zombie:
@@ -276,22 +252,37 @@ class Ghost:
                 logger.debug("GHOST L_GST = %s", lghosts)
                 
                 if distance(g_pos, self.map.ghost_spawn) <= self.respawn_dist and distance(p_pos, self.map.ghost_spawn) > self.respawn_dist:
-                    logger.debug("Ghost State = Close to respawn")
+                    logger.debug("Ghost State = Leaving")
                     if len(self.plan) == 0:
                         self.plan = self.find_exit(g_pos, [], [])
                     self.direction = self.plan.pop(0)
+                elif self.zombie:
+                    logger.debug("Ghost State = Zombie")
+                    if self.level == Level.Easy:
+                        self.direction = self.random_valid_direction(g_pos, lghosts)
+                    else:
+                        self.direction = self.reverse_valid_direction(g_pos, p_pos, lghosts)
+                elif self.visible(p_pos, g_pos) and not self.zombie:
+                    logger.debug("Ghost State = Tracking")
+                    if len(self.plan) == 0 or len(self.visited) == 0 or self.visited[-1] != p_pos:
+                        mdepth = 2*distance(g_pos, p_pos)
+                        it = 3
+                        while len(self.plan) == 0 and it > 0:
+                            logger.debug("Size = %d Depth = %d", len(self.plan), mdepth)
+                            self.plan, self.visited = self.find_path(g_pos, p_pos, lghosts, 0, mdepth, [], [])
+                            mdepth += 10
+                            it -= 1
+                    logger.debug("Plan = %s", self.plan)
+                    if len(self.plan) > 0:
+                        self.direction = self.plan.pop(0)
+                    else:
+                        self.direction = self.random_valid_direction(g_pos, lghosts)
                 else:
-                    logger.debug("Ghost State = Track")
-                    # Find the right direction
-                    dirs = self.directions(p_pos, g_pos)
-                    # Compute the scores of each direction based on the buffer
-                    scores = self.scores(g_pos, p_pos, dirs, lghosts)
-                    # Use the maximum score
-                    idx = scores.index(max(scores))
-                    self.direction = dirs[idx]
-                    self.buffer.add(g_pos)
-
-                logger.debug("GHOST FINAL DIRS  = %s", self.direction)
+                    logger.debug("Ghost State = Looking")
+                    self.direction = self.random_valid_direction(g_pos, lghosts)
+                
+                logger.debug("Ghost Direction = %s", self.direction)
+                self.buffer.add(self.map.calc_pos((self.x, self.y), self.direction))
                 # Update new position
                 self.x, self.y = self.map.calc_pos((self.x, self.y), self.direction)
     
