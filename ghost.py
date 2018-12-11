@@ -27,7 +27,7 @@ from enum import Enum
 from mapa import Map
 
 logger = logging.getLogger('Ghost')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 
 def scaling(scores, a=0.01, b=1.0):
