@@ -292,7 +292,6 @@ class Ghost:
                     self.buffer.add(g_pos)
 
                 logger.debug("GHOST FINAL DIRS  = %s", self.direction)
-                logger.debug("")
                 # Update new position
                 self.x, self.y = self.map.calc_pos((self.x, self.y), self.direction)
     
