@@ -26,7 +26,7 @@ import logging
 from enum import Enum
 from mapa import Map
 
-logger = logging.getLogger('Ghost')
+logger = logging.getLogger('Ghost1')
 logger.setLevel(logging.INFO)
 
 

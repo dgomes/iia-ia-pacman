@@ -3,7 +3,8 @@ import os
 import asyncio
 import json
 import logging
-from ghost2 import Ghost
+from ghost1 import Ghost as Ghost1
+from ghost2 import Ghost as Ghost2
 from mapa import Map, Tiles
 
 logger = logging.getLogger('Game')
@@ -82,6 +83,10 @@ class Game:
         
         self.map = Map(self.map.filename)
         self._step = 0
+        if self._l_ghosts <=2:
+            Ghost = Ghost1
+        else:
+            Ghost = Ghost2
         self._ghosts = [Ghost(i, self.map, level=self._l_ghosts) for i in range(0,self._n_ghosts)]
         self._pacman = self.map.pacman_spawn
         self._energy = self.map.energy
