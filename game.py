@@ -101,6 +101,7 @@ class Game:
     def save_highscores(self):
         #update highscores
         logger.debug("Save highscores")
+        logger.info("FINAL SCORE <%s>: %s", self._player_name, self.score)
         self._highscores.append((self._player_name, self.score))
         self._highscores = sorted(self._highscores, key=lambda s: -1*s[1])[:MAX_HIGHSCORES]
     
