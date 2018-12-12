@@ -1,23 +1,5 @@
-"""
-Ghost with multiple levels of difficulty:
-    Level 0 (Easy):
-     - Visibility of 2
-     - When in Zombie runs away in a random direction
-     - Ignores Memory (Buffer) when running away
-
-    Level 1 (Medium):
-     - Visibility of 4 (capable of maintaining chase even when the pacman changes direction)
-     - Runs away in the opposite direction of the pacman
-     - Maintains Memory of the previous positions
-
-    Level 2 (Hard):
-     - Visibility of 6
-     - Runs away in the opposite direction of the pacman
-     - Maintains memory of the previous positions
-     - Gives priority to spreading (go away from other ghosts)
-"""
 __author__ = "Mário Antunes"
-__version__ = "2.0"
+__version__ = "3.0"
 __email__ = "mario.antunes@ua.pt"
 
 import random
@@ -69,19 +51,10 @@ class Ghost:
         self.buffer = Buffer()
         self.plan = []
         self.identity = id
-
-        if level <= 0:
-            self.level = Level.Easy
-            self.visibility = 2
-        elif level == 1:
-            self.level = Level.Medium
-            self.visibility = 4
-        else:
-            self.level = Level.Hard
-            self.visibility = 6
-
+        self.visibility = 4
         self.wait = id
         self.zombie_timeout = 0
+        self.level = Level.Ultra
 
         logger.info("Ghost Level = %s ", self.level)
         logger.info("Ghost Visibility = %s", self.visibility)
@@ -135,18 +108,8 @@ class Ghost:
         return dirs
 
     def reverse_directions(self, p_pos, g_pos):
-        dirs = self.directions(p_pos, g_pos)
-        rv = []
-        for x in dirs:
-            if x == 'w':
-                rv.append('s')
-            elif x == 'a':
-                rv.append('d')
-            elif x == 's':
-                rv.append('w')
-            else:
-                rv.append('a')
-        return rv
+        rd = {'w':'s', 'a':'d', 's': 'w', 'd':'a'}
+        return [rd[d] for d in self.directions(p_pos, g_pos)]
 
     def find_exit(self, pos, actlist, visited):
         dirs = ['w', 's', 'a', 'd']
@@ -234,10 +197,7 @@ class Ghost:
                 elif self.visible(p_pos, g_pos) and not self.zombie:
                     logger.debug("Ghost State = Tracking")
                     mdepth = distance(g_pos, p_pos)
-                    delta = 0
-                    if mdepth >= 4:
-                        delta = 3
-                    self.plan = self.find_path(g_pos, p_pos, lghosts, 0, mdepth, [], [], delta)
+                    self.plan = self.find_path(g_pos, p_pos, lghosts, 0, mdepth, [], [])
                     logger.debug("Plan = %s", self.plan)
                     if len(self.plan) > 0:
                         self.direction = self.plan.pop(0)

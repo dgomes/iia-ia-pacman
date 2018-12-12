@@ -3,7 +3,7 @@ import os
 import asyncio
 import json
 import logging
-from old_ghost import Ghost
+from ghost2 import Ghost
 from mapa import Map, Tiles
 
 logger = logging.getLogger('Game')
