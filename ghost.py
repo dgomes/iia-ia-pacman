@@ -241,7 +241,7 @@ class Ghost:
                 return d
         return dirs[0]  
     
-    def update(self, state):
+    def update(self, state, ghosts):
         if self.zombie:
             self.zombie_timeout-=1
             #if zombie we move at HALF speed by skipping steps

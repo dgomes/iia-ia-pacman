@@ -163,7 +163,7 @@ class Game:
         self.collision()
        
         for ghost in self._ghosts:
-            ghost.update(self._state)
+            ghost.update(self._state, self._ghosts)
         self.collision()
         
         self._state = {"step": self._step,
