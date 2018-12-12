@@ -1,17 +1,17 @@
 """
 Ghost with multiple levels of difficulty:
     Level 0 (Easy):
-     - Visibility of 3 (twice when running away)
+     - Visibility of 2 (twice when running away)
      - When in Zombie runs away in a random direction
      - Ignores Memory (Buffer) when running away
 
     Level 1 (Medium):
-     - Visibility of 6 (capable of maintaining chase even when the pacman changes direction)
+     - Visibility of 4 (capable of maintaining chase even when the pacman changes direction)
      - Runs away in the opposite direction of the pacman
      - Maintains Memory of the previous positions
 
     Level 2 (Hard):
-     - Visibility of 9 (twice the medium)
+     - Visibility of 8 (twice the medium)
      - Runs away in the opposite direction of the pacman
      - Maintains memory of the previous positions
      - Gives priority to spreading (go away from other ghosts)
@@ -197,12 +197,7 @@ class Ghost:
 
     def find_path(self, pos, target, lghosts, depth, max_depth, actlist, visited, close=3):        
         visited += [pos]
-
-        if pos in lghosts:
-            dirs = reverse_directions(target, pos)
-        else:
-            dirs = self.directions(target, pos)
-
+        dirs = self.directions(target, pos)
 
         if pos == target:
             return actlist
@@ -254,7 +249,7 @@ class Ghost:
                 p_pos = state['pacman']
                 g_pos = (self.x, self.y)
                 # Find the other ghosts
-                lghosts = [x[0] for x in state['ghosts'] if x[0] != g_pos]
+                lghosts = [(x.x, x.y) for x in ghosts if x.identity != self.identity]
                 logger.debug("GHOST L_GST = %s", lghosts)
                 
                 if distance(g_pos, self.map.ghost_spawn) <= self.respawn_dist and distance(p_pos, self.map.ghost_spawn) > self.respawn_dist:
