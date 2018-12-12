@@ -1,3 +1,4 @@
+import math
 import os
 import asyncio
 import json
@@ -130,6 +131,12 @@ class Game:
             self._score += ((self._timeout - self._step) // TIME_BONUS_STEPS) * POINT_TIME_BONUS 
             self.stop()
 
+    def in_range(self, p1, p2, d):
+        px, py = p1
+        gx, gy = p2
+        distance = math.hypot(px-gx, py-gy)
+        return distance <= d
+
     def collision(self):
         for g in self._ghosts:
             if g.pos == self._pacman and self._running:
@@ -142,6 +149,7 @@ class Game:
                         self._lives -= 1
                         self._pacman = self.map.pacman_spawn
                         g.respawn()
+                        [gg.respawn() for gg in self._ghosts if self.in_range(self._pacman, gg.pos, 2)]
                     if not self._lives:
                         self.stop()
                         return
