@@ -1,7 +1,7 @@
 """
 Ghost with multiple levels of difficulty:
     Level 0 (Easy):
-     - Visibility of 2 (twice when running away)
+     - Visibility of 2
      - When in Zombie runs away in a random direction
      - Ignores Memory (Buffer) when running away
 
@@ -11,7 +11,7 @@ Ghost with multiple levels of difficulty:
      - Maintains Memory of the previous positions
 
     Level 2 (Hard):
-     - Visibility of 8 (twice the medium)
+     - Visibility of 6
      - Runs away in the opposite direction of the pacman
      - Maintains memory of the previous positions
      - Gives priority to spreading (go away from other ghosts)
@@ -28,36 +28,6 @@ from mapa import Map
 
 logger = logging.getLogger('Ghost')
 logger.setLevel(logging.INFO)
-
-
-def scaling(scores, a=0.01, b=1.0):
-    minimum = min(scores)
-    maximum = max(scores)
-    d = (maximum - minimum)
-    if d > 0:
-        for i in range(len(scores)):
-            scores[i] = (b - a) * ((scores[i] - minimum) / d) + a
-    else:
-        for i in range(len(scores)):
-            scores[i] = (b - a) * (scores[i] - minimum) + a
-    return scores
-
-
-def distance_2_score(distances):
-    maximum = max(distances)
-    for i in range(len(distances)):
-        distances[i] = maximum - distances[i]
-    return scaling(distances)
-
-
-def combine_scores(l, *args):
-    scores = []
-    for i in range(0, l):
-        score = 1.0
-        for a in args:
-            score *= a[i]
-        scores.append(score)
-    return scores
 
 
 def distance(a, b):
@@ -108,7 +78,7 @@ class Ghost:
             self.visibility = 4
         else:
             self.level = Level.Hard
-            self.visibility = 8
+            self.visibility = 6
 
         self.wait = id
         self.zombie_timeout = 0
@@ -195,13 +165,11 @@ class Ghost:
                         return rv
             return None
 
-    def find_path(self, pos, target, lghosts, depth, max_depth, actlist, visited, close=3):        
+    def find_path(self, pos, target, lghosts, depth, max_depth, actlist, visited, delta=0):        
         visited += [pos]
         dirs = self.directions(target, pos)
 
-        if pos == target:
-            return actlist
-        elif depth > (max_depth/2) and distance(pos, target) < close:
+        if distance(pos, target) <= delta:
             return actlist
         elif depth >= max_depth:
             return []
@@ -265,8 +233,11 @@ class Ghost:
                         self.direction = self.reverse_valid_direction(g_pos, p_pos, lghosts)
                 elif self.visible(p_pos, g_pos) and not self.zombie:
                     logger.debug("Ghost State = Tracking")
-                    mdepth = int(distance(g_pos, p_pos) * 1.5)
-                    self.plan = self.find_path(g_pos, p_pos, lghosts, 0, mdepth, [], [])
+                    mdepth = distance(g_pos, p_pos)
+                    delta = 0
+                    if mdepth >= 4:
+                        delta = 3
+                    self.plan = self.find_path(g_pos, p_pos, lghosts, 0, mdepth, [], [], delta)
                     logger.debug("Plan = %s", self.plan)
                     if len(self.plan) > 0:
                         self.direction = self.plan.pop(0)
