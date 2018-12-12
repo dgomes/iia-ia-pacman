@@ -218,7 +218,8 @@ class Ghost:
                 p_pos = state['pacman']
                 g_pos = (self.x, self.y)
                 # Find the other ghosts
-                lghosts = [(x.x, x.y) for x in ghosts if x.identity != self.identity]
+                #lghosts = [(x.x, x.y) for x in ghosts if x.identity != self.identity]
+                lghosts = [x[0] for x in state['ghosts'] if x[0] != g_pos]
                 logger.debug("GHOST L_GST = %s", lghosts)
                 # Find the right direction
                 dirs = self.directions(p_pos, g_pos)
