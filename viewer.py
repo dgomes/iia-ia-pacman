@@ -259,7 +259,7 @@ async def main_loop(q):
                             color = (255, 165, 0)
                         elif c == 5:
                             color = (255, 255, 0)
-                        draw_info(SCREEN, str.format("%dTH", i), scale((2,i+5)), color, background)
+                        draw_info(SCREEN, str.format("{:d}TH", i), scale((2,i+5)), color, background)
                         draw_info(SCREEN, str(highscores[i-1][1]), scale((6,i+5)), color, background)
                         draw_info(SCREEN, highscores[i-1][0], scale((11,i+5)), color, background)
                         c += 1
