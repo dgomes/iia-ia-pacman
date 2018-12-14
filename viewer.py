@@ -31,6 +31,7 @@ SCALE = None
 
 COLORS = {'white':(255,255,255), 'red':(255,0,0), 'pink':(255,105,180), 'blue':(135,206,235), 'orange':(255,165,0), 'yellow':(255,255,0)}
 BACKGROUND = (0, 0, 0)
+RANKS = {1:"1ST", 2:"2ND", 3:"3RD", 4:"4TH", 5:"5TH", 6:"6TH", 7:"7TH", 8:"8TH", 9:"9TH", 10:"10TH"}
 
 async def messages_handler(ws_path, queue):
     async with websockets.connect(ws_path) as websocket:
@@ -234,29 +235,14 @@ async def main_loop(q):
                 draw_info(SCREEN, "SCORE", scale((6,4)), COLORS['orange'], BACKGROUND)
                 draw_info(SCREEN, "NAME", scale((11,4)), COLORS['orange'], BACKGROUND)
             
-                c = 4
-                for i in range(1, 11):
-                    if i == 1:
-                        draw_info(SCREEN, "1ST", scale((2,6)), COLORS['red'], BACKGROUND)
-                        draw_info(SCREEN, str(highscores[0][1]), scale((6,6)), COLORS['red'], BACKGROUND)
-                        draw_info(SCREEN, highscores[0][0], scale((11,6)), COLORS['red'], BACKGROUND)
-                    elif i == 2:
-                        color = (255, 105, 180)
-                        draw_info(SCREEN, "2ND", scale((2,7)), COLORS['pink'], BACKGROUND)
-                        draw_info(SCREEN, str(highscores[1][1]), scale((6,7)), COLORS['pink'], BACKGROUND)
-                        draw_info(SCREEN, highscores[1][0], scale((11,7)), COLORS['pink'], BACKGROUND)
-                    elif i == 3:
-                        color = (135, 206, 235)
-                        draw_info(SCREEN, "3RD", scale((2,8)), COLORS['blue'], BACKGROUND)
-                        draw_info(SCREEN, str(highscores[2][1]), scale((6,8)), COLORS['blue'], BACKGROUND)
-                        draw_info(SCREEN, highscores[2][0], scale((11,8)), COLORS['blue'], BACKGROUND)
-                    else:
-                        if i == 6:
-                            c = 1
-                        draw_info(SCREEN, str.format("{:d}TH", i), scale((2,i+5)), list(COLORS.values())[c], BACKGROUND)
-                        draw_info(SCREEN, str(highscores[i-1][1]), scale((6,i+5)), list(COLORS.values())[c], BACKGROUND)
-                        draw_info(SCREEN, highscores[i-1][0], scale((11,i+5)), list(COLORS.values())[c], BACKGROUND)
-                        c += 1
+                c = 1
+                for i in range(10):
+                    if i == 5:
+                        c = 1
+                    draw_info(SCREEN, RANKS[i+1], scale((2,i+6)), list(COLORS.values())[c], BACKGROUND)
+                    draw_info(SCREEN, str(highscores[i][1]), scale((6,i+6)), list(COLORS.values())[c], BACKGROUND)
+                    draw_info(SCREEN, highscores[i][0], scale((11,i+6)), list(COLORS.values())[c], BACKGROUND)
+                    c += 1
 
         newstate = state
 
