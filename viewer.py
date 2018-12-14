@@ -217,45 +217,37 @@ async def main_loop(q):
         if counter == 30 or state == {}:
             counter = 29
             if newstate == state:
+                background = (0, 0, 0)
                 highscores = newgame_json["highscores"]
                 if blit == 0:
                     SCREEN.blit(pygame.Surface(scale((20,40))), scale((0,0)))
                     blit = 1
                     state = dict()
-                text = "THE 10 BEST PLAYERS"
-                draw_info(SCREEN, text, scale((5,2)), (255, 255, 255), (0, 0, 0))
-                text = "RANK"
-                draw_info(SCREEN, text, scale((2,4)), (255, 165, 0), (0, 0, 0))
-                text = "SCORE"
-                draw_info(SCREEN, text, scale((6,4)), (255, 165, 0), (0, 0, 0))
-                text = "NAME"
-                draw_info(SCREEN, text, scale((11,4)), (255, 165, 0), (0, 0, 0))
+                draw_info(SCREEN, "THE 10 BEST PLAYERS", scale((5,2)), (255, 255, 255), background)
+                color = (255, 165, 0)
+                draw_info(SCREEN, "RANK", scale((2,4)), color, background)
+                draw_info(SCREEN, "SCORE", scale((6,4)), color, background)
+                draw_info(SCREEN, "NAME", scale((11,4)), color, background)
             
                 c = 4
                 for i in range(1, 11):
                     if i == 6:
                         c = 1
                     if i == 1:
-                        text = str(i) + "ST"
-                        draw_info(SCREEN, text, scale((2,6)), (255, 0, 0), (0, 0, 0))
-                        text = str(highscores[0][1])
-                        draw_info(SCREEN, text, scale((6,6)), (255, 0, 0), (0, 0, 0))
-                        text = highscores[0][0]
-                        draw_info(SCREEN, text, scale((11,6)), (255, 0, 0), (0, 0, 0))
+                        color = (255, 0, 0)
+                        draw_info(SCREEN, "1ST", scale((2,6)), color, background)
+                        draw_info(SCREEN, str(highscores[0][1]), scale((6,6)), color, background)
+                        draw_info(SCREEN, highscores[0][0], scale((11,6)), color, background)
                     elif i == 2:
-                        text = str(i) + "ND"
-                        draw_info(SCREEN, text, scale((2,7)), (255, 105, 180), (0, 0, 0))
-                        text = str(highscores[1][1])
-                        draw_info(SCREEN, text, scale((6,7)), (255, 105, 180), (0, 0, 0))
-                        text = highscores[1][0]
-                        draw_info(SCREEN, text, scale((11,7)), (255, 105, 180), (0, 0, 0))
+                        color = (255, 105, 180)
+                        draw_info(SCREEN, "2ND", scale((2,7)), color, background)
+                        draw_info(SCREEN, str(highscores[1][1]), scale((6,7)), color, background)
+                        draw_info(SCREEN, highscores[1][0], scale((11,7)), color, background)
                     elif i == 3:
-                        text = str(i) + "RD"
-                        draw_info(SCREEN, text, scale((2,8)), (135, 206, 235), (0, 0, 0))
-                        text = str(highscores[2][1])
-                        draw_info(SCREEN, text, scale((6,8)), (135, 206, 235), (0, 0, 0))
-                        text = highscores[2][0]
-                        draw_info(SCREEN, text, scale((11,8)), (135, 206, 235), (0, 0, 0))
+                        color = (135, 206, 235)
+                        draw_info(SCREEN, "3RD", scale((2,8)), color, background)
+                        draw_info(SCREEN, str(highscores[2][1]), scale((6,8)), color, background)
+                        draw_info(SCREEN, highscores[2][0], scale((11,8)), color, background)
                     else:
                         if c == 1:
                             color = (255, 0, 0)
@@ -267,12 +259,9 @@ async def main_loop(q):
                             color = (255, 165, 0)
                         elif c == 5:
                             color = (255, 255, 0)
-                        text = str(i) + "TH"
-                        draw_info(SCREEN, text, scale((2,i+5)), color, (0, 0, 0))
-                        text = str(highscores[i-1][1])
-                        draw_info(SCREEN, text, scale((6,i+5)), color, (0, 0, 0))
-                        text = highscores[i-1][0]
-                        draw_info(SCREEN, text, scale((11,i+5)), color, (0, 0, 0))
+                        draw_info(SCREEN, str.format("%dTH", i), scale((2,i+5)), color, background)
+                        draw_info(SCREEN, str(highscores[i-1][1]), scale((6,i+5)), color, background)
+                        draw_info(SCREEN, highscores[i-1][0], scale((11,i+5)), color, background)
                         c += 1
 
         counter += 1
