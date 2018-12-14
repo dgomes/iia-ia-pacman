@@ -148,9 +148,9 @@ def draw_energy(SCREEN, x, y, boost=False):
                        (ex+int(CHAR_LENGTH/SCALE/2),ey+int(CHAR_LENGTH/SCALE/2)),
                        int(BOOST_RADIUS/SCALE) if boost else int(ENERGY_RADIUS/SCALE), 0)
 
-def draw_info(SCREEN, text, pos):
-    myfont = pygame.font.Font(None, 30) 
-    textsurface = myfont.render(text, True, (0, 0, 0))
+def draw_info(SCREEN, text, pos, color=(0,0,0), background=None):
+    myfont = pygame.font.Font(None, int(30/SCALE))
+    textsurface = myfont.render(text, True, color, background)
 
     erase = pygame.Surface(textsurface.get_size())
     erase.fill((200,200,200))
@@ -183,15 +183,23 @@ async def main_loop(q):
     for i in range(newgame_json["ghosts"]):
         main_group.add(Ghost(pos=scale(mapa.ghost_spawn), images=images, index=i))
     
-    state = dict() 
+    state = dict()
+    newstate = dict()
+    SCREEN2 = SCREEN.copy()
+    blit = 0
+    counter = 0
     while True:
         pygame.event.pump()
         if pygame.key.get_pressed()[pygame.K_ESCAPE]:
             asyncio.get_event_loop().stop() 
  
         main_group.clear(SCREEN, clear_callback)
-   
+        
         if "score" in state:
+            if blit == 1:
+                SCREEN.blit(SCREEN2, scale((0,0)))
+                blit = 0
+                counter = 0
             text = str(state["score"])
             draw_info(SCREEN, text.zfill(6), (0,0))
             text = str(state["player"]).rjust(32)
@@ -202,12 +210,78 @@ async def main_loop(q):
         if "boost" in state:
             for x, y in state["boost"]:
                 draw_energy(SCREEN, x, y, True)
+
         main_group.draw(SCREEN)
-       
+
+        #Highscores Board
+        if counter == 30 or state == {}:
+            counter = 29
+            if newstate == state:
+                highscores = newgame_json["highscores"]
+                if blit == 0:
+                    SCREEN.blit(pygame.Surface(scale((20,40))), scale((0,0)))
+                    blit = 1
+                    state = dict()
+                text = "THE 10 BEST PLAYERS"
+                draw_info(SCREEN, text, scale((5,2)), (255, 255, 255), (0, 0, 0))
+                text = "RANK"
+                draw_info(SCREEN, text, scale((2,4)), (255, 165, 0), (0, 0, 0))
+                text = "SCORE"
+                draw_info(SCREEN, text, scale((6,4)), (255, 165, 0), (0, 0, 0))
+                text = "NAME"
+                draw_info(SCREEN, text, scale((11,4)), (255, 165, 0), (0, 0, 0))
+            
+                c = 4
+                for i in range(1, 11):
+                    if i == 6:
+                        c = 1
+                    if i == 1:
+                        text = str(i) + "ST"
+                        draw_info(SCREEN, text, scale((2,6)), (255, 0, 0), (0, 0, 0))
+                        text = str(highscores[0][1])
+                        draw_info(SCREEN, text, scale((6,6)), (255, 0, 0), (0, 0, 0))
+                        text = highscores[0][0]
+                        draw_info(SCREEN, text, scale((11,6)), (255, 0, 0), (0, 0, 0))
+                    elif i == 2:
+                        text = str(i) + "ND"
+                        draw_info(SCREEN, text, scale((2,7)), (255, 105, 180), (0, 0, 0))
+                        text = str(highscores[1][1])
+                        draw_info(SCREEN, text, scale((6,7)), (255, 105, 180), (0, 0, 0))
+                        text = highscores[1][0]
+                        draw_info(SCREEN, text, scale((11,7)), (255, 105, 180), (0, 0, 0))
+                    elif i == 3:
+                        text = str(i) + "RD"
+                        draw_info(SCREEN, text, scale((2,8)), (135, 206, 235), (0, 0, 0))
+                        text = str(highscores[2][1])
+                        draw_info(SCREEN, text, scale((6,8)), (135, 206, 235), (0, 0, 0))
+                        text = highscores[2][0]
+                        draw_info(SCREEN, text, scale((11,8)), (135, 206, 235), (0, 0, 0))
+                    else:
+                        if c == 1:
+                            color = (255, 0, 0)
+                        elif c == 2:
+                            color = (255, 105, 180)
+                        elif c == 3:
+                            color = (135, 206, 235)
+                        elif c == 4:
+                            color = (255, 165, 0)
+                        elif c == 5:
+                            color = (255, 255, 0)
+                        text = str(i) + "TH"
+                        draw_info(SCREEN, text, scale((2,i+5)), color, (0, 0, 0))
+                        text = str(highscores[i-1][1])
+                        draw_info(SCREEN, text, scale((6,i+5)), color, (0, 0, 0))
+                        text = highscores[i-1][0]
+                        draw_info(SCREEN, text, scale((11,i+5)), color, (0, 0, 0))
+                        c += 1
+
+        counter += 1
+        newstate = state
+
         main_group.update(state)
        
         pygame.display.flip()
-        
+
         try:
             state = json.loads(q.get_nowait())
             
