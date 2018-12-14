@@ -26,7 +26,7 @@ MAX_HIGHSCORES = 10
 
 class Game:
     def __init__(self, mapfile, n_ghosts=GHOSTS, l_ghosts=1, lives=LIVES, timeout=TIMEOUT):
-        logger.info("Game({}, {}, {})".format(mapfile, n_ghosts, lives))
+        logger.info("Game({}, {}, {}, {})".format(mapfile, n_ghosts, l_ghosts, lives))
         self._running = False
         self._timeout = timeout
         self._state = {}
