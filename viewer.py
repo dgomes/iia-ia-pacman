@@ -9,6 +9,7 @@ import asyncio
 import websockets
 import logging
 import argparse
+import time
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger('websockets')
@@ -27,6 +28,9 @@ CHAR_SIZE= CHAR_LENGTH, CHAR_LENGTH #22 + 2px border
 ENERGY_RADIUS = 4
 BOOST_RADIUS = 8
 SCALE = None 
+
+COLORS = {'white':(255,255,255), 'red':(255,0,0), 'pink':(255,105,180), 'blue':(135,206,235), 'orange':(255,165,0), 'yellow':(255,255,0)}
+BACKGROUND = (0, 0, 0)
 
 async def messages_handler(ws_path, queue):
     async with websockets.connect(ws_path) as websocket:
@@ -187,7 +191,7 @@ async def main_loop(q):
     newstate = dict()
     SCREEN2 = SCREEN.copy()
     blit = 0
-    counter = 0
+    start_time = time.process_time()
     while True:
         pygame.event.pump()
         if pygame.key.get_pressed()[pygame.K_ESCAPE]:
@@ -214,57 +218,46 @@ async def main_loop(q):
         main_group.draw(SCREEN)
 
         #Highscores Board
-        if counter == 30 or state == {}:
-            counter = 29
+        elapsed_time = (time.process_time() - start_time) * 100
+
+        if elapsed_time >= 20 or state == {}:
+            start_time = time.process_time()
+
             if newstate == state:
-                background = (0, 0, 0)
                 highscores = newgame_json["highscores"]
                 if blit == 0:
                     SCREEN.blit(pygame.Surface(scale((20,40))), scale((0,0)))
                     blit = 1
                     state = dict()
-                draw_info(SCREEN, "THE 10 BEST PLAYERS", scale((5,2)), (255, 255, 255), background)
-                color = (255, 165, 0)
-                draw_info(SCREEN, "RANK", scale((2,4)), color, background)
-                draw_info(SCREEN, "SCORE", scale((6,4)), color, background)
-                draw_info(SCREEN, "NAME", scale((11,4)), color, background)
+                draw_info(SCREEN, "THE 10 BEST PLAYERS", scale((5,2)), COLORS['white'], BACKGROUND)
+                draw_info(SCREEN, "RANK", scale((2,4)), COLORS['orange'], BACKGROUND)
+                draw_info(SCREEN, "SCORE", scale((6,4)), COLORS['orange'], BACKGROUND)
+                draw_info(SCREEN, "NAME", scale((11,4)), COLORS['orange'], BACKGROUND)
             
                 c = 4
                 for i in range(1, 11):
-                    if i == 6:
-                        c = 1
                     if i == 1:
-                        color = (255, 0, 0)
-                        draw_info(SCREEN, "1ST", scale((2,6)), color, background)
-                        draw_info(SCREEN, str(highscores[0][1]), scale((6,6)), color, background)
-                        draw_info(SCREEN, highscores[0][0], scale((11,6)), color, background)
+                        draw_info(SCREEN, "1ST", scale((2,6)), COLORS['red'], BACKGROUND)
+                        draw_info(SCREEN, str(highscores[0][1]), scale((6,6)), COLORS['red'], BACKGROUND)
+                        draw_info(SCREEN, highscores[0][0], scale((11,6)), COLORS['red'], BACKGROUND)
                     elif i == 2:
                         color = (255, 105, 180)
-                        draw_info(SCREEN, "2ND", scale((2,7)), color, background)
-                        draw_info(SCREEN, str(highscores[1][1]), scale((6,7)), color, background)
-                        draw_info(SCREEN, highscores[1][0], scale((11,7)), color, background)
+                        draw_info(SCREEN, "2ND", scale((2,7)), COLORS['pink'], BACKGROUND)
+                        draw_info(SCREEN, str(highscores[1][1]), scale((6,7)), COLORS['pink'], BACKGROUND)
+                        draw_info(SCREEN, highscores[1][0], scale((11,7)), COLORS['pink'], BACKGROUND)
                     elif i == 3:
                         color = (135, 206, 235)
-                        draw_info(SCREEN, "3RD", scale((2,8)), color, background)
-                        draw_info(SCREEN, str(highscores[2][1]), scale((6,8)), color, background)
-                        draw_info(SCREEN, highscores[2][0], scale((11,8)), color, background)
+                        draw_info(SCREEN, "3RD", scale((2,8)), COLORS['blue'], BACKGROUND)
+                        draw_info(SCREEN, str(highscores[2][1]), scale((6,8)), COLORS['blue'], BACKGROUND)
+                        draw_info(SCREEN, highscores[2][0], scale((11,8)), COLORS['blue'], BACKGROUND)
                     else:
-                        if c == 1:
-                            color = (255, 0, 0)
-                        elif c == 2:
-                            color = (255, 105, 180)
-                        elif c == 3:
-                            color = (135, 206, 235)
-                        elif c == 4:
-                            color = (255, 165, 0)
-                        elif c == 5:
-                            color = (255, 255, 0)
-                        draw_info(SCREEN, str.format("{:d}TH", i), scale((2,i+5)), color, background)
-                        draw_info(SCREEN, str(highscores[i-1][1]), scale((6,i+5)), color, background)
-                        draw_info(SCREEN, highscores[i-1][0], scale((11,i+5)), color, background)
+                        if i == 6:
+                            c = 1
+                        draw_info(SCREEN, str.format("{:d}TH", i), scale((2,i+5)), list(COLORS.values())[c], BACKGROUND)
+                        draw_info(SCREEN, str(highscores[i-1][1]), scale((6,i+5)), list(COLORS.values())[c], BACKGROUND)
+                        draw_info(SCREEN, highscores[i-1][0], scale((11,i+5)), list(COLORS.values())[c], BACKGROUND)
                         c += 1
 
-        counter += 1
         newstate = state
 
         main_group.update(state)
