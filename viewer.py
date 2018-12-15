@@ -234,15 +234,13 @@ async def main_loop(q):
                 draw_info(SCREEN, "RANK", scale((2,4)), COLORS['orange'], BACKGROUND)
                 draw_info(SCREEN, "SCORE", scale((6,4)), COLORS['orange'], BACKGROUND)
                 draw_info(SCREEN, "NAME", scale((11,4)), COLORS['orange'], BACKGROUND)
-            
-                c = 1
-                for i in range(10):
-                    if i == 5:
-                        c = 1
+                    
+                for i, highscore in enumerate(highscores):
+                    c = (i % 5) + 1
                     draw_info(SCREEN, RANKS[i+1], scale((2,i+6)), list(COLORS.values())[c], BACKGROUND)
-                    draw_info(SCREEN, str(highscores[i][1]), scale((6,i+6)), list(COLORS.values())[c], BACKGROUND)
-                    draw_info(SCREEN, highscores[i][0], scale((11,i+6)), list(COLORS.values())[c], BACKGROUND)
-                    c += 1
+                    draw_info(SCREEN, str(highscore[1]), scale((6,i+6)), list(COLORS.values())[c], BACKGROUND)
+                    draw_info(SCREEN, highscore[0], scale((11,i+6)), list(COLORS.values())[c], BACKGROUND)
+
 
         newstate = state
 
