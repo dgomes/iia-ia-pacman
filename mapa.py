@@ -1,3 +1,4 @@
+import os
 import pygame
 import logging
 from enum import Enum
@@ -9,7 +10,7 @@ BOOST = 0xffff2600
 PACMAN = 0xffd4fdd5
 GHOST = 0xff00f900
 
-if platform.system() == "Windows":
+if platform.system() == "Windows" or os.uname().machine.startswith("arm"):
     MASK = 0xFFFFFFFF
     WALL = ~(WALL ^ MASK)
     ENERGY = ~(ENERGY ^ MASK)
