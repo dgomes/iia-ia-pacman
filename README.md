@@ -1,6 +1,8 @@
 # iia-ia-pacman
 Client-Server PACMAN clone
 
+![Demo](https://github.com/dgomes/iia-ia-pacman/raw/master/data/Screenshot%202019-11-14%20at%2015.55.22.png)
+
 # Install
 
 * Clone this repository
