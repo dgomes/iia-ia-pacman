@@ -12,7 +12,7 @@ idna-ssl==1.1.0
 more-itertools==4.3.0
 multidict==4.4.2
 pluggy==0.7.1
-py==1.6.0
+py==1.10.0
 pytest==3.8.2
 six==1.11.0
 websockets==6.0
